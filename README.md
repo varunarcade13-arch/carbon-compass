@@ -51,41 +51,8 @@ graph TD
     class C,D,I secondary;
     class F,G,J,L dark;
 ```
-
 ---
 
-## 🔄 User Journey & Simulation Activity
-
-This activity diagram outlines the operational decision tree when onboarding and testing green lifestyle adjustments.
-
-```mermaid
-activityDiagram
-    %% Note: Standard flowchart syntax is used here to ensure maximum compatibility across Markdown renderers.
-    graph TD
-        Start([User visits CarbonCompass]) --> LoadPage[Render Onboarding Wizard]
-        LoadPage --> SelectOption{Choose Input Mode}
-        
-        SelectOption -->|1-Click Preset| SelectPreset[Click Eco/Balanced/Heavy Preset]
-        SelectOption -->|Manual Entry| FillForm[Enter Custom Housing & Commute Stats]
-        
-        SelectPreset --> ClickCalc[Click 'Calculate Impact']
-        FillForm --> ClickCalc
-        
-        ClickCalc --> ServerCalc[API computes Carbon Footprint]
-        ServerCalc --> LoadDash[Load Dashboard & Badge Gallery]
-        
-        LoadDash --> TabSelect{User Navigates}
-        
-        TabSelect -->|Simulator| AdjustSimulator[Toggle Solar/EV & Adjust Sliders]
-        AdjustSimulator --> ViewProjection[View Updated 5-Year Projections & Badge Preview]
-        ViewProjection --> TabSelect
-        
-        TabSelect -->|Action Plan| CheckHabit[Check off Daily Sustainable Habit]
-        CheckHabit --> EarnPoints[Earn Eco Points & Level up Badge]
-        EarnPoints --> TabSelect
-```
-
----
 
 ## 🛠️ Technology Stack
 
