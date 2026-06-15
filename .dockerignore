@@ -1,0 +1,12 @@
+node_modules
+.npm-cache
+dist
+frontend/dist
+backend/dist
+coverage
+*.log
+.git
+.gitignore
+.gemini
+Dockerfile
+.dockerignore

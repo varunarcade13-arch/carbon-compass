@@ -1,0 +1,18 @@
+{
+  "name": "antigravity-carbon-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "build:frontend": "npm run build -w frontend",
+    "build:backend": "npm run build -w backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "start": "npm run start -w backend",
+    "test": "npm test -w backend && npm test -w frontend",
+    "test:coverage": "npm run test:coverage -w backend"
+  }
+}
