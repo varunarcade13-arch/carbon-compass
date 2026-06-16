@@ -15,8 +15,9 @@ export function getActionPlan(req: Request, res: Response): void {
     
     const result = PlanService.generatePlan(calcResult);
     res.json(result);
-  } catch (error: any) {
-    Logger.error('Error in getActionPlan controller', { error: error?.message });
-    res.status(500).json({ error: 'Internal Server Error', message: error?.message });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    Logger.error('Error in getActionPlan controller', { error: errorMessage });
+    res.status(500).json({ error: 'Internal Server Error', message: errorMessage });
   }
 }

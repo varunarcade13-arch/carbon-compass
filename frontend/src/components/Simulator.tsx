@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AssessmentInput } from '../../../backend/src/services/calculatorService';
 import { SimulationToggles, SimulationResult } from '../../../backend/src/services/simulatorService';
 import { ApiClient } from '../services/api';
@@ -40,9 +40,19 @@ export function Simulator({ baseInput }: SimulatorProps) {
     };
   }, [baseInput, toggles]);
 
-  const updateToggle = (key: keyof SimulationToggles, val: any) => {
+  const currentBadge = useMemo(() => {
+    if (!simResult) return null;
+    return getBadgeInfo(simResult.baseline.grandTotal);
+  }, [simResult]);
+
+  const projectedBadge = useMemo(() => {
+    if (!simResult) return null;
+    return getBadgeInfo(simResult.simulated.grandTotal);
+  }, [simResult]);
+
+  const updateToggle = useCallback(<K extends keyof SimulationToggles>(key: K, val: SimulationToggles[K]) => {
     setToggles((prev) => ({ ...prev, [key]: val }));
-  };
+  }, []);
 
   return (
     <div className="dashboard-grid">
@@ -159,84 +169,78 @@ export function Simulator({ baseInput }: SimulatorProps) {
           Savings Projections
         </h2>
 
-        {simResult ? (
-          (() => {
-            const currentBadge = getBadgeInfo(simResult.baseline.grandTotal);
-            const projectedBadge = getBadgeInfo(simResult.simulated.grandTotal);
-            return (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Annual Carbon Saved</span>
-                    <strong style={{ fontSize: '28px', color: 'var(--primary)', fontFamily: 'var(--font-header)' }}>
-                      {(simResult.savingsAnnual / 1000).toFixed(1)} Tons
-                    </strong>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Footprint Reduction</span>
-                    <strong style={{ fontSize: '28px', color: 'var(--secondary)', fontFamily: 'var(--font-header)' }}>
-                      {simResult.savingsPct}%
-                    </strong>
-                  </div>
-                </div>
+        {simResult && currentBadge && projectedBadge ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
+              <div>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Annual Carbon Saved</span>
+                <strong style={{ fontSize: '28px', color: 'var(--primary)', fontFamily: 'var(--font-header)' }}>
+                  {(simResult.savingsAnnual / 1000).toFixed(1)} Tons
+                </strong>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase' }}>Footprint Reduction</span>
+                <strong style={{ fontSize: '28px', color: 'var(--secondary)', fontFamily: 'var(--font-header)' }}>
+                  {simResult.savingsPct}%
+                </strong>
+              </div>
+            </div>
 
-                {/* Projected Badge Rank Promotion Panel */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.02)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border-glass)', justifyContent: 'center' }}>
-                  <BadgeIcon tier={projectedBadge.tier} size={40} showGlow={true} />
-                  <div style={{ textAlign: 'left' }}>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block' }}>Projected Badge Rank</span>
-                    <strong style={{ fontSize: '14px', color: projectedBadge.color, fontWeight: 700 }}>
-                      {projectedBadge.title}
-                    </strong>
-                    {projectedBadge.tier !== currentBadge.tier && (
-                      <span style={{ display: 'block', fontSize: '11px', color: 'var(--primary)', marginTop: '2px', fontWeight: 600 }}>
-                        🏆 Projected Rank Up!
+            {/* Projected Badge Rank Promotion Panel */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.02)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border-glass)', justifyContent: 'center' }}>
+              <BadgeIcon tier={projectedBadge.tier} size={40} showGlow={true} />
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block' }}>Projected Badge Rank</span>
+                <strong style={{ fontSize: '14px', color: projectedBadge.color, fontWeight: 700 }}>
+                  {projectedBadge.title}
+                </strong>
+                {projectedBadge.tier !== currentBadge.tier && (
+                  <span style={{ display: 'block', fontSize: '11px', color: 'var(--primary)', marginTop: '2px', fontWeight: 600 }}>
+                    🏆 Projected Rank Up!
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 5-Year Cumulative Savings Visual Bar Table */}
+            <div>
+              <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                5-Year Cumulative Carbon Savings (Tons)
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {simResult.projections.map((proj) => {
+                  const maxSavings = simResult.projections[4].savingsCumulative;
+                  const barWidth = maxSavings > 0 ? (proj.savingsCumulative / maxSavings) * 100 : 0;
+                  return (
+                    <div key={proj.year} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ width: '48px', fontSize: '14px', color: 'var(--text-secondary)' }}>Year {proj.year}</span>
+                      <div style={{ flexGrow: 1, height: '14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '7px', overflow: 'hidden' }}>
+                        <div 
+                          style={{ 
+                            width: `${barWidth}%`, 
+                            height: '100%', 
+                            background: 'linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%)',
+                            borderRadius: '7px',
+                            transition: 'width 0.5s ease-out'
+                          }} 
+                        />
+                      </div>
+                      <span style={{ width: '56px', fontSize: '14px', fontWeight: 600, textAlign: 'right' }}>
+                        {(proj.savingsCumulative / 1000).toFixed(1)} t
                       </span>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                {/* 5-Year Cumulative Savings Visual Bar Table */}
-                <div>
-                  <h3 style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    5-Year Cumulative Carbon Savings (Tons)
-                  </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {simResult.projections.map((proj) => {
-                      const maxSavings = simResult.projections[4].savingsCumulative;
-                      const barWidth = maxSavings > 0 ? (proj.savingsCumulative / maxSavings) * 100 : 0;
-                      return (
-                        <div key={proj.year} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <span style={{ width: '48px', fontSize: '14px', color: 'var(--text-secondary)' }}>Year {proj.year}</span>
-                          <div style={{ flexGrow: 1, height: '14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '7px', overflow: 'hidden' }}>
-                            <div 
-                              style={{ 
-                                width: `${barWidth}%`, 
-                                height: '100%', 
-                                background: 'linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%)',
-                                borderRadius: '7px',
-                                transition: 'width 0.5s ease-out'
-                              }} 
-                            />
-                          </div>
-                          <span style={{ width: '56px', fontSize: '14px', fontWeight: 600, textAlign: 'right' }}>
-                            {(proj.savingsCumulative / 1000).toFixed(1)} t
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '13px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-                  <Sparkles size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                  <p>
-                    By enacting these lifestyle selections, you would offset approximately <strong>{(simResult.projections[4].savingsCumulative / 1000).toFixed(1)} tons</strong> of CO2e over the next 5 years!
-                  </p>
-                </div>
-              </>
-            );
-          })()
+            <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '13px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+              <Sparkles size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <p>
+                By enacting these lifestyle selections, you would offset approximately <strong>{(simResult.projections[4].savingsCumulative / 1000).toFixed(1)} tons</strong> of CO2e over the next 5 years!
+              </p>
+            </div>
+          </>
         ) : (
           <p style={{ color: 'var(--text-secondary)' }}>Loading simulation parameters...</p>
         )}

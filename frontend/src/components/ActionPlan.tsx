@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CalculationResult } from '../../../backend/src/services/calculatorService';
 import { ActionPlanResult, HabitItem, Milestone } from '../../../backend/src/services/planService';
 import { ApiClient } from '../services/api';
@@ -16,7 +16,7 @@ export function ActionPlan({ result }: ActionPlanProps) {
   const [loading, setLoading] = useState(true);
 
   // Get active badge based on emissions
-  const badgeInfo = getBadgeInfo(result.grandTotal);
+  const badgeInfo = useMemo(() => getBadgeInfo(result.grandTotal), [result.grandTotal]);
 
   // Fetch plan from backend on result mount
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { CalculationResult } from '../../../backend/src/services/calculatorService';
 import { Info, BarChart3, PieChart, Landmark } from 'lucide-react';
 import { getBadgeInfo, BadgeIcon, BadgeGallery } from './BadgeSystem';
@@ -8,44 +9,65 @@ interface DashboardProps {
 }
 
 export function Dashboard({ result, onRecalculate }: DashboardProps) {
-  const tons = (result.grandTotal / 1000).toFixed(1);
+  const tons = useMemo(() => (result.grandTotal / 1000).toFixed(1), [result.grandTotal]);
   const totalVal = result.grandTotal;
 
   // Determine Badge Information
-  const badgeInfo = getBadgeInfo(totalVal);
+  const badgeInfo = useMemo(() => getBadgeInfo(totalVal), [totalVal]);
 
   // Determine Impact Rating
-  let rating: 'low' | 'med' | 'high' = 'med';
-  let ratingLabel = 'Average Impact';
-  let ratingClass = 'med';
-  if (totalVal < 4000) {
-    rating = 'low';
-    ratingLabel = 'Low Impact (Eco Friendly)';
-    ratingClass = 'low';
-  } else if (totalVal > 12000) {
-    rating = 'high';
-    ratingLabel = 'High Impact (Action Needed)';
-    ratingClass = 'high';
-  }
+  const ratingDetails = useMemo(() => {
+    let rating: 'low' | 'med' | 'high' = 'med';
+    let ratingLabel = 'Average Impact';
+    let ratingClass = 'med';
+    if (totalVal < 4000) {
+      rating = 'low';
+      ratingLabel = 'Low Impact (Eco Friendly)';
+      ratingClass = 'low';
+    } else if (totalVal > 12000) {
+      rating = 'high';
+      ratingLabel = 'High Impact (Action Needed)';
+      ratingClass = 'high';
+    }
+    return { rating, ratingLabel, ratingClass };
+  }, [totalVal]);
+
+  const { rating, ratingLabel, ratingClass } = ratingDetails;
 
   // Percentages for breakdown bars (relative to max category)
-  const maxCategory = Math.max(result.housing.total, result.transport.total, result.consumption.total, 1);
-  const pctHousing = (result.housing.total / maxCategory) * 100;
-  const pctTransport = (result.transport.total / maxCategory) * 100;
-  const pctConsumption = (result.consumption.total / maxCategory) * 100;
+  const breakdownPcts = useMemo(() => {
+    const maxCategory = Math.max(result.housing.total, result.transport.total, result.consumption.total, 1);
+    return {
+      pctHousing: (result.housing.total / maxCategory) * 100,
+      pctTransport: (result.transport.total / maxCategory) * 100,
+      pctConsumption: (result.consumption.total / maxCategory) * 100,
+    };
+  }, [result.housing.total, result.transport.total, result.consumption.total]);
+
+  const { pctHousing, pctTransport, pctConsumption } = breakdownPcts;
 
   // Donut Piechart calculations (absolute percentages out of total)
-  const totalEmissions = Math.max(result.grandTotal, 1);
-  const pieHousing = Math.round((result.housing.total / totalEmissions) * 100);
-  const pieTransport = Math.round((result.transport.total / totalEmissions) * 100);
-  const pieConsumption = 100 - pieHousing - pieTransport; // ensure total is exactly 100%
+  const donutPcts = useMemo(() => {
+    const totalEmissions = Math.max(result.grandTotal, 1);
+    const pieHousing = Math.round((result.housing.total / totalEmissions) * 100);
+    const pieTransport = Math.round((result.transport.total / totalEmissions) * 100);
+    const pieConsumption = 100 - pieHousing - pieTransport; // ensure total is exactly 100%
+    return { pieHousing, pieTransport, pieConsumption };
+  }, [result.grandTotal, result.housing.total, result.transport.total]);
+
+  const { pieHousing, pieTransport, pieConsumption } = donutPcts;
 
   // Benchmarking scores (in Tons)
-  const userTons = Number(tons);
-  const usAvgTons = 16.0;
-  const globalAvgTons = 4.5;
-  const targetTons = 2.0;
-  const maxBenchmark = Math.max(userTons, usAvgTons, globalAvgTons, targetTons, 1);
+  const benchmarkDetails = useMemo(() => {
+    const userTons = Number(tons);
+    const usAvgTons = 16.0;
+    const globalAvgTons = 4.5;
+    const targetTons = 2.0;
+    const maxBenchmark = Math.max(userTons, usAvgTons, globalAvgTons, targetTons, 1);
+    return { userTons, usAvgTons, globalAvgTons, targetTons, maxBenchmark };
+  }, [tons]);
+
+  const { userTons, usAvgTons, globalAvgTons, targetTons, maxBenchmark } = benchmarkDetails;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

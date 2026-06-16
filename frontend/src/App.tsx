@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AssessmentWizard } from './components/AssessmentWizard';
 import { Dashboard } from './components/Dashboard';
 import { Simulator } from './components/Simulator';
@@ -7,17 +7,17 @@ import { ApiClient } from './services/api';
 import { AssessmentInput, CalculationResult } from '../../backend/src/services/calculatorService';
 import { Award, BarChart3, ToggleLeft, Calculator } from 'lucide-react';
 import './styles/app.css';
-
+ 
 type TabType = 'calculator' | 'dashboard' | 'simulator' | 'plans';
-
+ 
 export default function App() {
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null);
   const [baseInput, setBaseInput] = useState<AssessmentInput | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleAssessmentComplete = async (input: AssessmentInput) => {
+ 
+  const handleAssessmentComplete = useCallback(async (input: AssessmentInput) => {
     setLoading(true);
     setError(null);
     try {
@@ -25,16 +25,17 @@ export default function App() {
       setCalcResult(result);
       setBaseInput(input);
       setActiveTab('dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'Failed to compute footprint. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to compute footprint. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRecalculate = () => {
+  }, []);
+ 
+  const handleRecalculate = useCallback(() => {
     setActiveTab('calculator');
-  };
+  }, []);
 
   return (
     <>
