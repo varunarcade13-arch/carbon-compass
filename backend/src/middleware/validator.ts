@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
+const ALLOWED_CAR_TYPES = new Set<string>(['ev', 'hybrid', 'sedan', 'suv']);
+const ALLOWED_DIETS = new Set<string>(['vegan', 'vegetarian', 'pescatarian', 'meat-heavy']);
+
 export function validateCalculateInput(req: Request, res: Response, next: NextFunction): void {
   const { housing, transport, consumption } = req.body;
   const errors: string[] = [];
@@ -39,10 +42,11 @@ export function validateCalculateInput(req: Request, res: Response, next: NextFu
         errors.push('transport.carKm must be a number');
       }
       if (carType !== undefined && carType !== null) {
-        if (typeof carType !== 'string' || !['ev', 'hybrid', 'sedan', 'suv'].includes(carType)) {
+        if (typeof carType !== 'string' || !ALLOWED_CAR_TYPES.has(carType)) {
           errors.push('transport.carType must be one of: ev, hybrid, sedan, suv');
         }
       }
+
       if (transitKm !== undefined && transitKm !== null && typeof transitKm !== 'number') {
         errors.push('transport.transitKm must be a number');
       }
@@ -65,10 +69,11 @@ export function validateCalculateInput(req: Request, res: Response, next: NextFu
     } else {
       const { diet, shoppingSpent } = consumption;
       if (diet !== undefined && diet !== null) {
-        if (typeof diet !== 'string' || !['vegan', 'vegetarian', 'pescatarian', 'meat-heavy'].includes(diet)) {
+        if (typeof diet !== 'string' || !ALLOWED_DIETS.has(diet)) {
           errors.push('consumption.diet must be one of: vegan, vegetarian, pescatarian, meat-heavy');
         }
       }
+
       if (shoppingSpent !== undefined && shoppingSpent !== null && typeof shoppingSpent !== 'number') {
         errors.push('consumption.shoppingSpent must be a number');
       }

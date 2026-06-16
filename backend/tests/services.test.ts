@@ -62,7 +62,30 @@ describe('CalculatorService', () => {
     expect(pescatarian.consumption.diet).toBe(EMISSION_FACTORS.dietPescatarian);
     expect(meat.consumption.diet).toBe(EMISSION_FACTORS.dietMeatHeavy);
   });
+
+  it('should memoize calculations and hit the cache on duplicate inputs', () => {
+    const input1 = { housing: { electricityKwh: 123 } };
+    const input2 = { housing: { electricityKwh: 123 } };
+    
+    const result1 = CalculatorService.calculate(input1);
+    const result2 = CalculatorService.calculate(input2);
+    
+    expect(result1).toBe(result2); // Strict equality checks cache hit
+  });
+
+  it('should evict cache entries when cache grows past capacity', () => {
+    const firstResult = CalculatorService.calculate({ housing: { electricityKwh: 9999 } });
+    
+    // Trigger eviction by inserting unique entries past cache size limit (1000)
+    for (let index = 0; index < 1005; index++) {
+      CalculatorService.calculate({ housing: { electricityKwh: index } });
+    }
+    
+    const secondResult = CalculatorService.calculate({ housing: { electricityKwh: 9999 } });
+    expect(firstResult).not.toBe(secondResult); // Proves firstResult was evicted from cache
+  });
 });
+
 
 describe('SimulatorService', () => {
   const baseInput = {

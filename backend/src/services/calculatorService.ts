@@ -95,9 +95,20 @@ export const DEFAULT_INPUTS = {
 };
 
 export class CalculatorService {
+  private static readonly cache = new Map<string, CalculationResult>();
+  private static readonly MAX_CACHE_SIZE = 1000;
+
   public static calculate(input?: AssessmentInput | null): CalculationResult {
+    // 0. Cache lookup to prevent redundant recalculation
+    const cacheKey = input ? JSON.stringify(input) : 'empty';
+    const cachedResult = CalculatorService.cache.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
     // 1. Parse & Sanitize Housing
     const housingInput = input?.housing;
+
     const electricityKwh = Math.max(0, housingInput?.electricityKwh ?? DEFAULT_INPUTS.electricityKwh);
     const gasTherms = Math.max(0, housingInput?.gasTherms ?? DEFAULT_INPUTS.gasTherms);
     const wasteKg = Math.max(0, housingInput?.wasteKg ?? DEFAULT_INPUTS.wasteKg);
@@ -151,7 +162,7 @@ export class CalculatorService {
     // Totals
     const grandTotal = housingTotal + transportTotal + consumptionTotal;
 
-    return {
+    const result: CalculationResult = {
       housing: {
         electricity: Math.round(annualElectricity),
         gas: Math.round(annualGas),
@@ -171,5 +182,17 @@ export class CalculatorService {
       },
       grandTotal: Math.round(grandTotal),
     };
+
+    // Size-capped cache eviction (FIFO) to prevent memory leaks/unbounded growth
+    if (CalculatorService.cache.size >= CalculatorService.MAX_CACHE_SIZE) {
+      const firstKey = CalculatorService.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        CalculatorService.cache.delete(firstKey);
+      }
+    }
+    CalculatorService.cache.set(cacheKey, result);
+
+    return result;
   }
 }
+
