@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { CalculationResult } from '../../../backend/src/services/calculatorService';
-import { Info, BarChart3, PieChart, Landmark } from 'lucide-react';
+import { Info, PieChart } from 'lucide-react';
 import { getBadgeInfo, BadgeIcon, BadgeGallery } from './BadgeSystem';
+import { CategoryBreakdown } from './CategoryBreakdown';
+import { BenchmarkingGraph } from './BenchmarkingGraph';
+
 
 interface DashboardProps {
   result: CalculationResult;
@@ -188,121 +191,23 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
       </div>
 
       {/* Badge Achievement Gallery Grid */}
-      <BadgeGallery currentTons={userTons} />
-
-      {/* Middle Grid: Detailed Category Breakdowns & National Benchmarking */}
+      <BadgeGallery currentTons={userTons} />      {/* Middle Grid: Detailed Category Breakdowns & National Benchmarking */}
       <div className="dashboard-grid">
-        
-        {/* Card 3: Categorical Breakdown Progress Bars */}
-        <section className="card" aria-labelledby="breakdown-title">
-          <h2 id="breakdown-title" style={{ fontFamily: 'var(--font-header)', fontSize: '20px', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={20} style={{ color: 'var(--secondary)' }} /> Category Sub-Totals
-          </h2>
+        <CategoryBreakdown
+          result={result}
+          percentageHousing={percentageHousing}
+          percentageTransport={percentageTransport}
+          percentageConsumption={percentageConsumption}
+        />
 
-          <div className="breakdown-bars">
-            {/* Housing */}
-            <div className="bar-group">
-              <div className="bar-label">
-                <span>Housing</span>
-                <strong>{(result.housing.total / 1000).toFixed(1)} tons</strong>
-              </div>
-              <div className="bar-outer">
-                <div className="bar-inner housing" style={{ width: `${percentageHousing}%` }} />
-              </div>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                <span>Grid: {Math.round(result.housing.electricity)}kg</span>
-                <span>Gas: {Math.round(result.housing.gas)}kg</span>
-                <span>Waste: {Math.round(result.housing.waste)}kg</span>
-              </div>
-            </div>
-
-            {/* Transport */}
-            <div className="bar-group" style={{ marginTop: '16px' }}>
-              <div className="bar-label">
-                <span>Transport</span>
-                <strong>{(result.transport.total / 1000).toFixed(1)} tons</strong>
-              </div>
-              <div className="bar-outer">
-                <div className="bar-inner transport" style={{ width: `${percentageTransport}%` }} />
-              </div>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                <span>Car: {Math.round(result.transport.car)}kg</span>
-                <span>Transit: {Math.round(result.transport.transit)}kg</span>
-                <span>Flights: {Math.round(result.transport.flights)}kg</span>
-              </div>
-            </div>
-
-            {/* Consumption */}
-            <div className="bar-group" style={{ marginTop: '16px' }}>
-              <div className="bar-label">
-                <span>Consumption</span>
-                <strong>{(result.consumption.total / 1000).toFixed(1)} tons</strong>
-              </div>
-              <div className="bar-outer">
-                <div className="bar-inner consumption" style={{ width: `${percentageConsumption}%` }} />
-              </div>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                <span>Diet: {Math.round(result.consumption.diet)}kg</span>
-                <span>Shopping: {Math.round(result.consumption.shopping)}kg</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Card 4: National & Target Benchmarking Graph */}
-        <section className="card" aria-labelledby="benchmark-title">
-          <h2 id="benchmark-title" style={{ fontFamily: 'var(--font-header)', fontSize: '20px', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Landmark size={20} style={{ color: 'var(--accent)' }} /> Benchmarking (Tons/yr)
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '12px' }}>
-            {/* You */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600 }}>Your Footprint</span>
-                <strong>{tons} Tons</strong>
-              </div>
-              <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(userTons / maxBenchmark) * 100}%`, background: 'var(--primary)' }} />
-              </div>
-            </div>
-
-            {/* US Average */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                <span>US Average</span>
-                <span>16.0 Tons</span>
-              </div>
-              <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(usAverageTons / maxBenchmark) * 100}%`, background: 'var(--high-impact)' }} />
-              </div>
-            </div>
-
-            {/* Global Average */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                <span>Global Average</span>
-                <span>4.5 Tons</span>
-              </div>
-              <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(globalAverageTons / maxBenchmark) * 100}%`, background: 'var(--med-impact)' }} />
-              </div>
-            </div>
-
-            {/* Net-Zero Target */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                <span>Net-Zero Paris Goal</span>
-                <span>2.0 Tons</span>
-              </div>
-              <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(targetGoalTons / maxBenchmark) * 100}%`, background: 'var(--low-impact)' }} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-
+        <BenchmarkingGraph
+          tons={tons}
+          userTons={userTons}
+          usAverageTons={usAverageTons}
+          globalAverageTons={globalAverageTons}
+          targetGoalTons={targetGoalTons}
+          maxBenchmark={maxBenchmark}
+        />
       </div>
 
       {/* Informative Tip at the bottom */}

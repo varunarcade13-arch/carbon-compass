@@ -310,6 +310,25 @@ describe('Config and Secrets Loader', () => {
     // Re-init config to restore valid state
     initConfig();
   });
+
+  it('should lazy load and cache config when requested', async () => {
+    // Test early return when config is already initialized and VITEST is not set
+    const originalVitest = process.env.VITEST;
+    delete process.env.VITEST;
+    try {
+      const config1 = initConfig();
+      const config2 = initConfig();
+      expect(config1).toBe(config2);
+    } finally {
+      process.env.VITEST = originalVitest;
+    }
+
+    // Test lazy loading of getConfig when config is null
+    vi.resetModules();
+    const { getConfig: getCleanConfig } = await import('../src/config/secrets');
+    const cleanConfig = getCleanConfig();
+    expect(cleanConfig.isReady).toBe(true);
+  });
 });
 
 describe('Structured Logger Service', () => {
