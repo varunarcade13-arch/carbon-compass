@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { WizardInputs } from './types';
 
 export const PRESETS: Record<'eco' | 'balanced' | 'heavy', WizardInputs> = {
@@ -67,7 +68,7 @@ interface PresetSelectorProps {
   onSelect: (preset: WizardInputs) => void;
 }
 
-export function PresetSelector({ onSelect }: PresetSelectorProps) {
+export const PresetSelector = memo(function PresetSelector({ onSelect }: PresetSelectorProps) {
   return (
     <div style={{ marginBottom: '36px', paddingBottom: '24px', borderBottom: '1px solid var(--border-glass)' }}>
       <h3 style={{ fontFamily: 'var(--font-header)', fontSize: '16px', fontWeight: 600, textAlign: 'center', marginBottom: '14px', color: 'var(--text-secondary)' }}>
@@ -137,4 +138,5 @@ export function PresetSelector({ onSelect }: PresetSelectorProps) {
       </div>
     </div>
   );
-}
+});
+

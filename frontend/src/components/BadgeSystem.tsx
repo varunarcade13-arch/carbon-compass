@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react';
 import { Shield, Sparkles, Award } from 'lucide-react';
 
 export type BadgeTier = 'diamond' | 'platinum' | 'gold' | 'silver' | 'bronze';
@@ -63,13 +64,38 @@ export function getBadgeInfo(grandTotalKg: number): BadgeInfo {
   return BADGE_TIERS.bronze;
 }
 
+const STATIC_DEFS = (
+  <defs>
+    <linearGradient id="grad-diamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#00352c" stopOpacity="0.9" />
+    </linearGradient>
+    <linearGradient id="grad-platinum" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#e2e8f0" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#1e293b" stopOpacity="0.9" />
+    </linearGradient>
+    <linearGradient id="grad-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#78350f" stopOpacity="0.9" />
+    </linearGradient>
+    <linearGradient id="grad-silver" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#cbd5e1" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#334155" stopOpacity="0.9" />
+    </linearGradient>
+    <linearGradient id="grad-bronze" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#fb923c" stopOpacity="0.8" />
+      <stop offset="100%" stopColor="#7c2d12" stopOpacity="0.9" />
+    </linearGradient>
+  </defs>
+);
+
 interface BadgeIconProps {
   tier: BadgeTier;
   size?: number;
   showGlow?: boolean;
 }
 
-export function BadgeIcon({ tier, size = 64, showGlow = true }: BadgeIconProps) {
+export const BadgeIcon = memo(function BadgeIcon({ tier, size = 64, showGlow = true }: BadgeIconProps) {
   const info = BADGE_TIERS[tier];
   
   // Custom SVG designs per tier
@@ -153,58 +179,44 @@ export function BadgeIcon({ tier, size = 64, showGlow = true }: BadgeIconProps) 
           filter: showGlow ? `drop-shadow(0 0 4px ${info.color}80)` : 'none',
         }}
       >
-        <defs>
-          <linearGradient id="grad-diamond" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#00352c" stopOpacity="0.9" />
-          </linearGradient>
-          <linearGradient id="grad-platinum" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#e2e8f0" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#1e293b" stopOpacity="0.9" />
-          </linearGradient>
-          <linearGradient id="grad-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#78350f" stopOpacity="0.9" />
-          </linearGradient>
-          <linearGradient id="grad-silver" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#cbd5e1" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#334155" stopOpacity="0.9" />
-          </linearGradient>
-          <linearGradient id="grad-bronze" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fb923c" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#7c2d12" stopOpacity="0.9" />
-          </linearGradient>
-        </defs>
+        {STATIC_DEFS}
         {renderSVGPath()}
       </svg>
     </div>
   );
-}
+});
+
 
 interface BadgeGalleryProps {
   currentTons: number;
 }
 
-export function BadgeGallery({ currentTons }: BadgeGalleryProps) {
-  const currentBadge = getBadgeInfo(currentTons * 1000);
+export const BadgeGallery = memo(function BadgeGallery({ currentTons }: BadgeGalleryProps) {
+  const currentBadge = useMemo(() => getBadgeInfo(currentTons * 1000), [currentTons]);
   
   // Calculate thresholds to next rank
-  let nextBadge: BadgeInfo | null = null;
-  let gapTons = 0;
-  
-  if (currentTons >= 12.0) {
-    nextBadge = BADGE_TIERS.silver;
-    gapTons = currentTons - 12.0;
-  } else if (currentTons >= 8.0) {
-    nextBadge = BADGE_TIERS.gold;
-    gapTons = currentTons - 8.0;
-  } else if (currentTons >= 4.0) {
-    nextBadge = BADGE_TIERS.platinum;
-    gapTons = currentTons - 4.0;
-  } else if (currentTons >= 2.0) {
-    nextBadge = BADGE_TIERS.diamond;
-    gapTons = currentTons - 2.0;
-  }
+  const rankUpgrade = useMemo(() => {
+    let nextBadge: BadgeInfo | null = null;
+    let gapTons = 0;
+    
+    if (currentTons >= 12.0) {
+      nextBadge = BADGE_TIERS.silver;
+      gapTons = currentTons - 12.0;
+    } else if (currentTons >= 8.0) {
+      nextBadge = BADGE_TIERS.gold;
+      gapTons = currentTons - 8.0;
+    } else if (currentTons >= 4.0) {
+      nextBadge = BADGE_TIERS.platinum;
+      gapTons = currentTons - 4.0;
+    } else if (currentTons >= 2.0) {
+      nextBadge = BADGE_TIERS.diamond;
+      gapTons = currentTons - 2.0;
+    }
+    return { nextBadge, gapTons };
+  }, [currentTons]);
+
+  const { nextBadge, gapTons } = rankUpgrade;
+
 
   return (
     <section className="card" aria-labelledby="badge-gallery-title">
@@ -250,7 +262,8 @@ export function BadgeGallery({ currentTons }: BadgeGalleryProps) {
       </div>
     </section>
   );
-}
+});
+
 
 function getTierWeight(tier: BadgeTier): number {
   switch (tier) {
