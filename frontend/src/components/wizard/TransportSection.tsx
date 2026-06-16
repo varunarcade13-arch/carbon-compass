@@ -109,29 +109,30 @@ export function TransportSection({ values, onChange }: TransportSectionProps) {
               { value: 'hybrid' as const, label: 'Hybrid 🔋' },
               { value: 'sedan' as const, label: 'Sedan 🚗' },
               { value: 'suv' as const, label: 'SUV 🚙' },
-            ].map((opt) => (
+            ].map((engineOption) => (
               <button
-                key={opt.value}
+                key={engineOption.value}
                 type="button"
                 role="radio"
-                aria-checked={values.carType === opt.value}
+                aria-checked={values.carType === engineOption.value}
                 style={{
                   padding: '12px 8px',
                   borderRadius: '12px',
-                  border: `1px solid ${values.carType === opt.value ? 'var(--primary)' : 'var(--border-glass)'}`,
-                  background: values.carType === opt.value ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                  color: values.carType === opt.value ? 'var(--primary)' : 'var(--text-secondary)',
+                  border: `1px solid ${values.carType === engineOption.value ? 'var(--primary)' : 'var(--border-glass)'}`,
+                  background: values.carType === engineOption.value ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                  color: values.carType === engineOption.value ? 'var(--primary)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontSize: '13px',
                   fontWeight: 600,
                   transition: 'var(--transition-fast)',
                   textAlign: 'center',
                 }}
-                onClick={() => onChange('carType', opt.value)}
+                onClick={() => onChange('carType', engineOption.value)}
               >
-                {opt.label}
+                {engineOption.label}
               </button>
             ))}
+
           </div>
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>

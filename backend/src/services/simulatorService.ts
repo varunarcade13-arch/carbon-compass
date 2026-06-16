@@ -125,14 +125,15 @@ export class SimulatorService {
 
     // 5. Generate Projections (1 to 5 years cumulative)
     const projections: SimulationProjectionYear[] = [];
-    for (let i = 1; i <= 5; i++) {
+    for (let yearIndex = 1; yearIndex <= 5; yearIndex++) {
       projections.push({
-        year: i,
-        baselineCumulative: Math.round(baseline.grandTotal * i),
-        simulatedCumulative: Math.round(simulated.grandTotal * i),
-        savingsCumulative: Math.round(savingsAnnual * i),
+        year: yearIndex,
+        baselineCumulative: Math.round(baseline.grandTotal * yearIndex),
+        simulatedCumulative: Math.round(simulated.grandTotal * yearIndex),
+        savingsCumulative: Math.round(savingsAnnual * yearIndex),
       });
     }
+
 
     return {
       baseline,

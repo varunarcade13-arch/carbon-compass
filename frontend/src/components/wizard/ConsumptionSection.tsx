@@ -25,29 +25,30 @@ export function ConsumptionSection({ values, onChange }: ConsumptionSectionProps
               { value: 'vegetarian' as const, label: 'Vegetarian 🥚' },
               { value: 'pescatarian' as const, label: 'Pescatarian 🐟' },
               { value: 'meat-heavy' as const, label: 'Meat Heavy 🥩' },
-            ].map((opt) => (
+            ].map((dietaryOption) => (
               <button
-                key={opt.value}
+                key={dietaryOption.value}
                 type="button"
                 role="radio"
-                aria-checked={values.diet === opt.value}
+                aria-checked={values.diet === dietaryOption.value}
                 style={{
                   padding: '12px 8px',
                   borderRadius: '12px',
-                  border: `1px solid ${values.diet === opt.value ? 'var(--primary)' : 'var(--border-glass)'}`,
-                  background: values.diet === opt.value ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                  color: values.diet === opt.value ? 'var(--primary)' : 'var(--text-secondary)',
+                  border: `1px solid ${values.diet === dietaryOption.value ? 'var(--primary)' : 'var(--border-glass)'}`,
+                  background: values.diet === dietaryOption.value ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                  color: values.diet === dietaryOption.value ? 'var(--primary)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontSize: '13px',
                   fontWeight: 600,
                   transition: 'var(--transition-fast)',
                   textAlign: 'center',
                 }}
-                onClick={() => onChange('diet', opt.value)}
+                onClick={() => onChange('diet', dietaryOption.value)}
               >
-                {opt.label}
+                {dietaryOption.label}
               </button>
             ))}
+
           </div>
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>

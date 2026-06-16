@@ -35,39 +35,40 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
   const { rating, ratingLabel, ratingClass } = ratingDetails;
 
   // Percentages for breakdown bars (relative to max category)
-  const breakdownPcts = useMemo(() => {
+  const breakdownPercentages = useMemo(() => {
     const maxCategory = Math.max(result.housing.total, result.transport.total, result.consumption.total, 1);
     return {
-      pctHousing: (result.housing.total / maxCategory) * 100,
-      pctTransport: (result.transport.total / maxCategory) * 100,
-      pctConsumption: (result.consumption.total / maxCategory) * 100,
+      percentageHousing: (result.housing.total / maxCategory) * 100,
+      percentageTransport: (result.transport.total / maxCategory) * 100,
+      percentageConsumption: (result.consumption.total / maxCategory) * 100,
     };
   }, [result.housing.total, result.transport.total, result.consumption.total]);
 
-  const { pctHousing, pctTransport, pctConsumption } = breakdownPcts;
+  const { percentageHousing, percentageTransport, percentageConsumption } = breakdownPercentages;
 
   // Donut Piechart calculations (absolute percentages out of total)
-  const donutPcts = useMemo(() => {
+  const donutPercentages = useMemo(() => {
     const totalEmissions = Math.max(result.grandTotal, 1);
-    const pieHousing = Math.round((result.housing.total / totalEmissions) * 100);
-    const pieTransport = Math.round((result.transport.total / totalEmissions) * 100);
-    const pieConsumption = 100 - pieHousing - pieTransport; // ensure total is exactly 100%
-    return { pieHousing, pieTransport, pieConsumption };
+    const housingPiePercentage = Math.round((result.housing.total / totalEmissions) * 100);
+    const transportPiePercentage = Math.round((result.transport.total / totalEmissions) * 100);
+    const consumptionPiePercentage = 100 - housingPiePercentage - transportPiePercentage; // ensure total is exactly 100%
+    return { housingPiePercentage, transportPiePercentage, consumptionPiePercentage };
   }, [result.grandTotal, result.housing.total, result.transport.total]);
 
-  const { pieHousing, pieTransport, pieConsumption } = donutPcts;
+  const { housingPiePercentage, transportPiePercentage, consumptionPiePercentage } = donutPercentages;
 
   // Benchmarking scores (in Tons)
   const benchmarkDetails = useMemo(() => {
     const userTons = Number(tons);
-    const usAvgTons = 16.0;
-    const globalAvgTons = 4.5;
-    const targetTons = 2.0;
-    const maxBenchmark = Math.max(userTons, usAvgTons, globalAvgTons, targetTons, 1);
-    return { userTons, usAvgTons, globalAvgTons, targetTons, maxBenchmark };
+    const usAverageTons = 16.0;
+    const globalAverageTons = 4.5;
+    const targetGoalTons = 2.0;
+    const maxBenchmark = Math.max(userTons, usAverageTons, globalAverageTons, targetGoalTons, 1);
+    return { userTons, usAverageTons, globalAverageTons, targetGoalTons, maxBenchmark };
   }, [tons]);
 
-  const { userTons, usAvgTons, globalAvgTons, targetTons, maxBenchmark } = benchmarkDetails;
+  const { userTons, usAverageTons, globalAverageTons, targetGoalTons, maxBenchmark } = benchmarkDetails;
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -131,7 +132,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                   fill="none"
                   stroke="var(--secondary)"
                   strokeWidth="3.8"
-                  strokeDasharray={`${pieHousing} ${100 - pieHousing}`}
+                  strokeDasharray={`${housingPiePercentage} ${100 - housingPiePercentage}`}
                   strokeDashoffset="0"
                 />
                 {/* Sector 2: Transport (Violet) */}
@@ -142,8 +143,8 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                   fill="none"
                   stroke="var(--accent)"
                   strokeWidth="3.8"
-                  strokeDasharray={`${pieTransport} ${100 - pieTransport}`}
-                  strokeDashoffset={`-${pieHousing}`}
+                  strokeDasharray={`${transportPiePercentage} ${100 - transportPiePercentage}`}
+                  strokeDashoffset={`-${housingPiePercentage}`}
                 />
                 {/* Sector 3: Consumption (Mint Green) */}
                 <circle
@@ -153,9 +154,10 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                   fill="none"
                   stroke="var(--primary)"
                   strokeWidth="3.8"
-                  strokeDasharray={`${pieConsumption} ${100 - pieConsumption}`}
-                  strokeDashoffset={`-${pieHousing + pieTransport}`}
+                  strokeDasharray={`${consumptionPiePercentage} ${100 - consumptionPiePercentage}`}
+                  strokeDashoffset={`-${housingPiePercentage + transportPiePercentage}`}
                 />
+
               </svg>
               {/* Inner Donut Display */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-header)', pointerEvents: 'none' }}>
@@ -168,16 +170,17 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '120px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--secondary)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Housing: {pieHousing}%</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Housing: {housingPiePercentage}%</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--accent)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Transport: {pieTransport}%</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Transport: {transportPiePercentage}%</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--primary)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Consumption: {pieConsumption}%</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Consumption: {consumptionPiePercentage}%</span>
               </div>
+
             </div>
           </div>
         </section>
@@ -204,7 +207,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <strong>{(result.housing.total / 1000).toFixed(1)} tons</strong>
               </div>
               <div className="bar-outer">
-                <div className="bar-inner housing" style={{ width: `${pctHousing}%` }} />
+                <div className="bar-inner housing" style={{ width: `${percentageHousing}%` }} />
               </div>
               <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 <span>Grid: {Math.round(result.housing.electricity)}kg</span>
@@ -220,7 +223,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <strong>{(result.transport.total / 1000).toFixed(1)} tons</strong>
               </div>
               <div className="bar-outer">
-                <div className="bar-inner transport" style={{ width: `${pctTransport}%` }} />
+                <div className="bar-inner transport" style={{ width: `${percentageTransport}%` }} />
               </div>
               <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 <span>Car: {Math.round(result.transport.car)}kg</span>
@@ -236,7 +239,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <strong>{(result.consumption.total / 1000).toFixed(1)} tons</strong>
               </div>
               <div className="bar-outer">
-                <div className="bar-inner consumption" style={{ width: `${pctConsumption}%` }} />
+                <div className="bar-inner consumption" style={{ width: `${percentageConsumption}%` }} />
               </div>
               <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 <span>Diet: {Math.round(result.consumption.diet)}kg</span>
@@ -271,7 +274,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <span>16.0 Tons</span>
               </div>
               <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(usAvgTons / maxBenchmark) * 100}%`, background: 'var(--high-impact)' }} />
+                <div className="bar-inner" style={{ width: `${(usAverageTons / maxBenchmark) * 100}%`, background: 'var(--high-impact)' }} />
               </div>
             </div>
 
@@ -282,7 +285,7 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <span>4.5 Tons</span>
               </div>
               <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(globalAvgTons / maxBenchmark) * 100}%`, background: 'var(--med-impact)' }} />
+                <div className="bar-inner" style={{ width: `${(globalAverageTons / maxBenchmark) * 100}%`, background: 'var(--med-impact)' }} />
               </div>
             </div>
 
@@ -293,11 +296,12 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
                 <span>2.0 Tons</span>
               </div>
               <div className="bar-outer" style={{ height: '8px' }}>
-                <div className="bar-inner" style={{ width: `${(targetTons / maxBenchmark) * 100}%`, background: 'var(--low-impact)' }} />
+                <div className="bar-inner" style={{ width: `${(targetGoalTons / maxBenchmark) * 100}%`, background: 'var(--low-impact)' }} />
               </div>
             </div>
           </div>
         </section>
+
 
       </div>
 

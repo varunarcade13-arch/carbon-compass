@@ -97,11 +97,11 @@ export const DEFAULT_INPUTS = {
 export class CalculatorService {
   public static calculate(input?: AssessmentInput | null): CalculationResult {
     // 1. Parse & Sanitize Housing
-    const hInput = input?.housing;
-    const electricityKwh = Math.max(0, hInput?.electricityKwh ?? DEFAULT_INPUTS.electricityKwh);
-    const gasTherms = Math.max(0, hInput?.gasTherms ?? DEFAULT_INPUTS.gasTherms);
-    const wasteKg = Math.max(0, hInput?.wasteKg ?? DEFAULT_INPUTS.wasteKg);
-    const recycleRate = Math.min(100, Math.max(0, hInput?.recycleRate ?? DEFAULT_INPUTS.recycleRate));
+    const housingInput = input?.housing;
+    const electricityKwh = Math.max(0, housingInput?.electricityKwh ?? DEFAULT_INPUTS.electricityKwh);
+    const gasTherms = Math.max(0, housingInput?.gasTherms ?? DEFAULT_INPUTS.gasTherms);
+    const wasteKg = Math.max(0, housingInput?.wasteKg ?? DEFAULT_INPUTS.wasteKg);
+    const recycleRate = Math.min(100, Math.max(0, housingInput?.recycleRate ?? DEFAULT_INPUTS.recycleRate));
 
     const annualElectricity = electricityKwh * 12 * EMISSION_FACTORS.electricity;
     const annualGas = gasTherms * 12 * EMISSION_FACTORS.gas;
@@ -113,13 +113,13 @@ export class CalculatorService {
     const housingTotal = annualElectricity + annualGas + annualWaste;
 
     // 2. Parse & Sanitize Transport
-    const tInput = input?.transport;
-    const carKm = Math.max(0, tInput?.carKm ?? DEFAULT_INPUTS.carKm);
-    const carType = tInput?.carType ?? DEFAULT_INPUTS.carType;
-    const transitKm = Math.max(0, tInput?.transitKm ?? DEFAULT_INPUTS.transitKm);
-    const flightsShort = Math.max(0, Math.round(tInput?.flightsShort ?? DEFAULT_INPUTS.flightsShort));
-    const flightsMedium = Math.max(0, Math.round(tInput?.flightsMedium ?? DEFAULT_INPUTS.flightsMedium));
-    const flightsLong = Math.max(0, Math.round(tInput?.flightsLong ?? DEFAULT_INPUTS.flightsLong));
+    const transportInput = input?.transport;
+    const carKm = Math.max(0, transportInput?.carKm ?? DEFAULT_INPUTS.carKm);
+    const carType = transportInput?.carType ?? DEFAULT_INPUTS.carType;
+    const transitKm = Math.max(0, transportInput?.transitKm ?? DEFAULT_INPUTS.transitKm);
+    const flightsShort = Math.max(0, Math.round(transportInput?.flightsShort ?? DEFAULT_INPUTS.flightsShort));
+    const flightsMedium = Math.max(0, Math.round(transportInput?.flightsMedium ?? DEFAULT_INPUTS.flightsMedium));
+    const flightsLong = Math.max(0, Math.round(transportInput?.flightsLong ?? DEFAULT_INPUTS.flightsLong));
 
     let carFactor = EMISSION_FACTORS.carSedan;
     if (carType === 'ev') carFactor = EMISSION_FACTORS.carEv;
@@ -135,9 +135,10 @@ export class CalculatorService {
     const transportTotal = annualCar + annualTransit + annualFlights;
 
     // 3. Parse & Sanitize Consumption
-    const cInput = input?.consumption;
-    const diet = cInput?.diet ?? DEFAULT_INPUTS.diet;
-    const shoppingSpent = Math.max(0, cInput?.shoppingSpent ?? DEFAULT_INPUTS.shoppingSpent);
+    const consumptionInput = input?.consumption;
+    const diet = consumptionInput?.diet ?? DEFAULT_INPUTS.diet;
+    const shoppingSpent = Math.max(0, consumptionInput?.shoppingSpent ?? DEFAULT_INPUTS.shoppingSpent);
+
 
     let dietEmissions = EMISSION_FACTORS.dietMeatHeavy;
     if (diet === 'vegan') dietEmissions = EMISSION_FACTORS.dietVegan;

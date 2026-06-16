@@ -42,7 +42,7 @@ export function ActionPlan({ result }: ActionPlanProps) {
     };
   }, [result]);
 
-  const toggleHabit = (habit: HabitItem) => {
+  const toggleHabit = (habit: HabitItem): void => {
     const isCompleted = !completedHabits[habit.id];
     setCompletedHabits((prev) => ({ ...prev, [habit.id]: isCompleted }));
     
@@ -53,9 +53,10 @@ export function ActionPlan({ result }: ActionPlanProps) {
     });
   };
 
-  const getMilestoneStatus = (milestone: Milestone) => {
+  const getMilestoneStatus = (milestone: Milestone): boolean => {
     return points >= milestone.targetPoints;
   };
+
 
   return (
     <div className="dashboard-grid">
@@ -135,25 +136,26 @@ export function ActionPlan({ result }: ActionPlanProps) {
             <p style={{ color: 'var(--text-secondary)' }}>Generating personalized roadmaps...</p>
           ) : plan && plan.actions.length > 0 ? (
             <div className="plan-list">
-              {plan.actions.map((act) => (
-                <article key={act.id} className="action-card">
+              {plan.actions.map((roadmapAction) => (
+                <article key={roadmapAction.id} className="action-card">
                   <div style={{ flexGrow: 1, paddingRight: '16px' }}>
                     <h3 style={{ fontFamily: 'var(--font-header)', fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
-                      {act.title}
+                      {roadmapAction.title}
                     </h3>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                      {act.description}
+                      {roadmapAction.description}
                     </p>
-                    <span className={`action-badge ${act.difficulty}`}>
-                      {act.difficulty}
+                    <span className={`action-badge ${roadmapAction.difficulty}`}>
+                      {roadmapAction.difficulty}
                     </span>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>ESTIMATED IMPACT</span>
-                    <strong style={{ fontSize: '16px', color: 'var(--primary)' }}>-{act.estimatedSavingsKg} kg CO₂e/yr</strong>
+                    <strong style={{ fontSize: '16px', color: 'var(--primary)' }}>-{roadmapAction.estimatedSavingsKg} kg CO₂e/yr</strong>
                   </div>
                 </article>
               ))}
+
             </div>
           ) : (
             <p style={{ color: 'var(--text-secondary)' }}>No actions required. Your footprint is optimal!</p>
@@ -171,11 +173,11 @@ export function ActionPlan({ result }: ActionPlanProps) {
           <p style={{ color: 'var(--text-secondary)' }}>Loading milestone configurations...</p>
         ) : plan ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {plan.milestones.map((ms) => {
-              const isUnlocked = getMilestoneStatus(ms);
+            {plan.milestones.map((milestone) => {
+              const isUnlocked = getMilestoneStatus(milestone);
               return (
                 <div
-                  key={ms.id}
+                  key={milestone.id}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -200,15 +202,16 @@ export function ActionPlan({ result }: ActionPlanProps) {
                   </div>
                   <div>
                     <strong style={{ display: 'block', fontSize: '15px', color: isUnlocked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                      {ms.title}
+                      {milestone.title}
                     </strong>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {ms.description} {ms.targetPoints > 0 && `(${ms.targetPoints} pts)`}
+                      {milestone.description} {milestone.targetPoints > 0 && `(${milestone.targetPoints} pts)`}
                     </span>
                   </div>
                 </div>
               );
             })}
+
 
             <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid var(--border-glass)', display: 'flex', gap: '12px' }}>
               <Sparkles size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />

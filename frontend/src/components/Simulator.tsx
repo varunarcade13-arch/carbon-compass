@@ -22,14 +22,14 @@ export function Simulator({ baseInput }: SimulatorProps) {
 
   useEffect(() => {
     let active = true;
-    const runSimulation = async () => {
+    const runSimulation = async (): Promise<void> => {
       try {
-        const res = await ApiClient.simulate(baseInput, toggles);
+        const simulationResponse = await ApiClient.simulate(baseInput, toggles);
         if (active) {
-          setSimResult(res);
+          setSimResult(simulationResponse);
         }
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
       }
     };
 
@@ -39,6 +39,7 @@ export function Simulator({ baseInput }: SimulatorProps) {
       active = false;
     };
   }, [baseInput, toggles]);
+
 
   const currentBadge = useMemo(() => {
     if (!simResult) return null;
@@ -50,9 +51,10 @@ export function Simulator({ baseInput }: SimulatorProps) {
     return getBadgeInfo(simResult.simulated.grandTotal);
   }, [simResult]);
 
-  const updateToggle = useCallback(<K extends keyof SimulationToggles>(key: K, val: SimulationToggles[K]) => {
-    setToggles((prev) => ({ ...prev, [key]: val }));
+  const updateToggle = useCallback(<K extends keyof SimulationToggles>(key: K, value: SimulationToggles[K]): void => {
+    setToggles((prev) => ({ ...prev, [key]: value }));
   }, []);
+
 
   return (
     <div className="dashboard-grid">
