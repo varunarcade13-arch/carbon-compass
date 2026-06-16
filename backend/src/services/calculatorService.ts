@@ -98,21 +98,25 @@ export class CalculatorService {
   private static readonly cache = new Map<string, CalculationResult>();
   private static readonly MAX_CACHE_SIZE = 1000;
 
-  public static calculate(input?: AssessmentInput | null): CalculationResult {
-    // 0. Cache lookup to prevent redundant recalculation
-    const cacheKey = input ? JSON.stringify(input) : 'empty';
-    const cachedResult = CalculatorService.cache.get(cacheKey);
-    if (cachedResult) {
-      return cachedResult;
+  private static sanitizeNumber(val: any, defaultVal: number): number {
+    if (typeof val !== 'number' || isNaN(val) || !isFinite(val)) {
+      return defaultVal;
     }
+    return Math.max(0, val);
+  }
 
-    // 1. Parse & Sanitize Housing
-    const housingInput = input?.housing;
+  private static sanitizeRecycleRate(val: any, defaultVal: number): number {
+    if (typeof val !== 'number' || isNaN(val) || !isFinite(val)) {
+      return defaultVal;
+    }
+    return Math.min(100, Math.max(0, val));
+  }
 
-    const electricityKwh = Math.max(0, housingInput?.electricityKwh ?? DEFAULT_INPUTS.electricityKwh);
-    const gasTherms = Math.max(0, housingInput?.gasTherms ?? DEFAULT_INPUTS.gasTherms);
-    const wasteKg = Math.max(0, housingInput?.wasteKg ?? DEFAULT_INPUTS.wasteKg);
-    const recycleRate = Math.min(100, Math.max(0, housingInput?.recycleRate ?? DEFAULT_INPUTS.recycleRate));
+  private static calculateHousing(housingInput: HousingInput | null | undefined): CategoryBreakdown {
+    const electricityKwh = CalculatorService.sanitizeNumber(housingInput?.electricityKwh, DEFAULT_INPUTS.electricityKwh);
+    const gasTherms = CalculatorService.sanitizeNumber(housingInput?.gasTherms, DEFAULT_INPUTS.gasTherms);
+    const wasteKg = CalculatorService.sanitizeNumber(housingInput?.wasteKg, DEFAULT_INPUTS.wasteKg);
+    const recycleRate = CalculatorService.sanitizeRecycleRate(housingInput?.recycleRate, DEFAULT_INPUTS.recycleRate);
 
     const annualElectricity = electricityKwh * 12 * EMISSION_FACTORS.electricity;
     const annualGas = gasTherms * 12 * EMISSION_FACTORS.gas;
@@ -121,16 +125,23 @@ export class CalculatorService {
     const landfillWaste = wasteKg - recycledWaste;
     const annualWaste = (landfillWaste * EMISSION_FACTORS.wasteLandfill + recycledWaste * EMISSION_FACTORS.wasteRecycle) * 52;
 
-    const housingTotal = annualElectricity + annualGas + annualWaste;
+    const total = annualElectricity + annualGas + annualWaste;
 
-    // 2. Parse & Sanitize Transport
-    const transportInput = input?.transport;
-    const carKm = Math.max(0, transportInput?.carKm ?? DEFAULT_INPUTS.carKm);
+    return {
+      electricity: Math.round(annualElectricity),
+      gas: Math.round(annualGas),
+      waste: Math.round(annualWaste),
+      total: Math.round(total),
+    };
+  }
+
+  private static calculateTransport(transportInput: TransportInput | null | undefined): TransportBreakdown {
+    const carKm = CalculatorService.sanitizeNumber(transportInput?.carKm, DEFAULT_INPUTS.carKm);
     const carType = transportInput?.carType ?? DEFAULT_INPUTS.carType;
-    const transitKm = Math.max(0, transportInput?.transitKm ?? DEFAULT_INPUTS.transitKm);
-    const flightsShort = Math.max(0, Math.round(transportInput?.flightsShort ?? DEFAULT_INPUTS.flightsShort));
-    const flightsMedium = Math.max(0, Math.round(transportInput?.flightsMedium ?? DEFAULT_INPUTS.flightsMedium));
-    const flightsLong = Math.max(0, Math.round(transportInput?.flightsLong ?? DEFAULT_INPUTS.flightsLong));
+    const transitKm = CalculatorService.sanitizeNumber(transportInput?.transitKm, DEFAULT_INPUTS.transitKm);
+    const flightsShort = Math.round(CalculatorService.sanitizeNumber(transportInput?.flightsShort, DEFAULT_INPUTS.flightsShort));
+    const flightsMedium = Math.round(CalculatorService.sanitizeNumber(transportInput?.flightsMedium, DEFAULT_INPUTS.flightsMedium));
+    const flightsLong = Math.round(CalculatorService.sanitizeNumber(transportInput?.flightsLong, DEFAULT_INPUTS.flightsLong));
 
     let carFactor = EMISSION_FACTORS.carSedan;
     if (carType === 'ev') carFactor = EMISSION_FACTORS.carEv;
@@ -143,13 +154,19 @@ export class CalculatorService {
                           (flightsMedium * EMISSION_FACTORS.flightMedium) +
                           (flightsLong * EMISSION_FACTORS.flightLong);
 
-    const transportTotal = annualCar + annualTransit + annualFlights;
+    const total = annualCar + annualTransit + annualFlights;
 
-    // 3. Parse & Sanitize Consumption
-    const consumptionInput = input?.consumption;
+    return {
+      car: Math.round(annualCar),
+      transit: Math.round(annualTransit),
+      flights: Math.round(annualFlights),
+      total: Math.round(total),
+    };
+  }
+
+  private static calculateConsumption(consumptionInput: ConsumptionInput | null | undefined): ConsumptionBreakdown {
     const diet = consumptionInput?.diet ?? DEFAULT_INPUTS.diet;
-    const shoppingSpent = Math.max(0, consumptionInput?.shoppingSpent ?? DEFAULT_INPUTS.shoppingSpent);
-
+    const shoppingSpent = CalculatorService.sanitizeNumber(consumptionInput?.shoppingSpent, DEFAULT_INPUTS.shoppingSpent);
 
     let dietEmissions = EMISSION_FACTORS.dietMeatHeavy;
     if (diet === 'vegan') dietEmissions = EMISSION_FACTORS.dietVegan;
@@ -157,30 +174,33 @@ export class CalculatorService {
     else if (diet === 'pescatarian') dietEmissions = EMISSION_FACTORS.dietPescatarian;
 
     const annualShopping = shoppingSpent * 12 * EMISSION_FACTORS.shopping;
-    const consumptionTotal = dietEmissions + annualShopping;
+    const total = dietEmissions + annualShopping;
 
-    // Totals
-    const grandTotal = housingTotal + transportTotal + consumptionTotal;
+    return {
+      diet: Math.round(dietEmissions),
+      shopping: Math.round(annualShopping),
+      total: Math.round(total),
+    };
+  }
+
+  public static calculate(input?: AssessmentInput | null): CalculationResult {
+    // 0. Cache lookup to prevent redundant recalculation
+    const cacheKey = input ? JSON.stringify(input) : 'empty';
+    const cachedResult = CalculatorService.cache.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const housing = CalculatorService.calculateHousing(input?.housing);
+    const transport = CalculatorService.calculateTransport(input?.transport);
+    const consumption = CalculatorService.calculateConsumption(input?.consumption);
+    const grandTotal = housing.total + transport.total + consumption.total;
 
     const result: CalculationResult = {
-      housing: {
-        electricity: Math.round(annualElectricity),
-        gas: Math.round(annualGas),
-        waste: Math.round(annualWaste),
-        total: Math.round(housingTotal),
-      },
-      transport: {
-        car: Math.round(annualCar),
-        transit: Math.round(annualTransit),
-        flights: Math.round(annualFlights),
-        total: Math.round(transportTotal),
-      },
-      consumption: {
-        diet: Math.round(dietEmissions),
-        shopping: Math.round(annualShopping),
-        total: Math.round(consumptionTotal),
-      },
-      grandTotal: Math.round(grandTotal),
+      housing,
+      transport,
+      consumption,
+      grandTotal,
     };
 
     // Size-capped cache eviction (FIFO) to prevent memory leaks/unbounded growth

@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "benchmark": "ts-node src/benchmarks/run.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

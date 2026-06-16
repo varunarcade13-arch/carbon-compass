@@ -13,6 +13,7 @@
     "build": "npm run build:frontend && npm run build:backend",
     "start": "npm run start -w backend",
     "test": "npm test -w backend && npm test -w frontend",
-    "test:coverage": "npm run test:coverage -w backend"
+    "test:coverage": "npm run test:coverage -w backend",
+    "benchmark": "npm run benchmark -w backend"
   }
 }

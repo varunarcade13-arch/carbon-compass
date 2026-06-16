@@ -292,3 +292,73 @@ describe('PlanService - Boolean Logic Coverage', () => {
     expect(plan.habits.find(h => h.id === 'c_hab_local')).toBeDefined();
   });
 });
+
+describe('CalculatorService - Edge Cases and Extremes', () => {
+  it('should handle NaN, Infinity, and -Infinity values gracefully', () => {
+    const result = CalculatorService.calculate({
+      housing: { electricityKwh: NaN, gasTherms: Infinity, wasteKg: -Infinity, recycleRate: NaN },
+      transport: { carKm: NaN, transitKm: Infinity, flightsShort: -Infinity, flightsMedium: NaN, flightsLong: Infinity },
+      consumption: { shoppingSpent: NaN }
+    });
+
+    // NaN should fall back to default values, Infinity falls back to defaults, -Infinity is clamped to 0 or fallback
+    expect(result.housing.electricity).toBe(Math.round(DEFAULT_INPUTS.electricityKwh * 12 * EMISSION_FACTORS.electricity));
+    expect(result.housing.gas).toBe(Math.round(DEFAULT_INPUTS.gasTherms * 12 * EMISSION_FACTORS.gas));
+    expect(result.housing.waste).toBe(Math.round(DEFAULT_INPUTS.wasteKg * 52 * (EMISSION_FACTORS.wasteLandfill * (1 - DEFAULT_INPUTS.recycleRate / 100) + EMISSION_FACTORS.wasteRecycle * (DEFAULT_INPUTS.recycleRate / 100))));
+    
+    expect(result.transport.car).toBe(Math.round(DEFAULT_INPUTS.carKm * 52 * EMISSION_FACTORS.carSedan));
+    expect(result.transport.transit).toBe(Math.round(DEFAULT_INPUTS.transitKm * 52 * EMISSION_FACTORS.transit));
+  });
+
+  it('should handle extremely large numbers without crashing', () => {
+    const result = CalculatorService.calculate({
+      housing: { electricityKwh: 1e12, gasTherms: 1e12, wasteKg: 1e12 }
+    });
+    expect(result.grandTotal).toBeGreaterThan(1e12);
+  });
+});
+
+describe('SimulatorService - Toggle Edge Cases', () => {
+  it('should clamp out-of-bounds toggles correctly', () => {
+    const baseInput = {
+      housing: { electricityKwh: 1000 },
+      transport: { carKm: 300, flightsShort: 2 },
+      consumption: { diet: 'meat-heavy' as const }
+    };
+    
+    // Test negative publicTransitPct and reduceFlightsPct (should clamp to 0, matching baseline)
+    const resultNeg = SimulatorService.simulate(baseInput, {
+      publicTransitPct: -50,
+      reduceFlightsPct: -20,
+      meatlessDays: -2
+    });
+    expect(resultNeg.simulated.transport.car).toBe(resultNeg.baseline.transport.car);
+    expect(resultNeg.simulated.transport.flights).toBe(resultNeg.baseline.transport.flights);
+    expect(resultNeg.simulated.consumption.diet).toBe(resultNeg.baseline.consumption.diet);
+
+    // Test excessive publicTransitPct and reduceFlightsPct (should clamp to 100% and 7 meatless days)
+    const resultExcess = SimulatorService.simulate(baseInput, {
+      publicTransitPct: 150,
+      reduceFlightsPct: 150,
+      meatlessDays: 12
+    });
+    expect(resultExcess.simulated.transport.car).toBe(0);
+    expect(resultExcess.simulated.transport.flights).toBe(0);
+    expect(resultExcess.simulated.consumption.diet).toBe(EMISSION_FACTORS.dietVegan);
+  });
+});
+
+describe('PlanService - Zero Emissions Edge Case', () => {
+  it('should handle 0 total emissions gracefully without division by zero errors', () => {
+    const zeroResult = {
+      housing: { electricity: 0, gas: 0, waste: 0, total: 0 },
+      transport: { car: 0, transit: 0, flights: 0, total: 0 },
+      consumption: { diet: 0, shopping: 0, total: 0 },
+      grandTotal: 0
+    };
+    const plan = PlanService.generatePlan(zeroResult);
+    expect(plan.actions).toBeDefined();
+    expect(plan.actions.length).toBeGreaterThan(0);
+    expect(plan.actions[0].estimatedSavingsKg).toBe(150);
+  });
+});

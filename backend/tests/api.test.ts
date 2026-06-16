@@ -252,6 +252,17 @@ describe('Action Plan Endpoint', () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('actions');
   });
+
+  it('POST /api/plans should handle completely malformed or empty payloads gracefully', async () => {
+    const response = await request(app)
+      .post('/api/plans')
+      .send({
+        housing: 'not-an-object-should-fallback-to-default-calculates',
+        transport: { carKm: NaN }
+      });
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('actions');
+  });
 });
 
 describe('Config and Secrets Loader', () => {
