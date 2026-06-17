@@ -60,9 +60,9 @@ graph TD
 | :--- | :--- | :--- |
 | **Frontend** | React, Vite | Vanilla CSS custom variables, glassmorphism, responsive grid, dynamic SVG badges |
 | **Backend** | Node.js, Express, TypeScript | REST APIs, validation middleware, loggers |
-| **Testing** | Vitest | 100% statements/branches code coverage in backend |
+| **Testing** | Vitest | 100% coverage (statements, branches, functions, lines) across both Backend & Frontend |
 | **Deployment** | GCP Cloud Run, Docker | Monorepo builder staging, lightweight alpine runtime, HTTP ready probes |
-| **Accessibility** | WCAG 2.1 AA | Full focus outlines, ARIA radiogroups, keyboard tab indices, semantic tags |
+| **Accessibility** | WCAG 2.1 AA | Full focus outlines, ARIA radiogroups, keyboard tab indices, semantic tags, 100% verified via eslint-plugin-jsx-a11y |
 
 ---
 
@@ -109,10 +109,17 @@ npm start
 Navigate to `http://localhost:8080`.
 
 ### Running Tests
-To run the full test suite and view coverage:
+To run the full test suite:
 ```bash
 npm run test
 ```
+
+To view the 100% test coverage reports for both workspaces:
+```bash
+npm run test:coverage -w backend
+npm run test:coverage -w frontend
+```
+
 
 ---
 
