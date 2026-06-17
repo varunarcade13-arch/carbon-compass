@@ -25,7 +25,7 @@ const ToggleControl = React.memo(function ToggleControl({ id, icon, title, descr
           <span id={`${id}-desc`} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</span>
         </div>
       </div>
-      <label className="switch">
+      <label className="switch" aria-label={`Toggle ${title}`}>
         <input
           id={id}
           type="checkbox"

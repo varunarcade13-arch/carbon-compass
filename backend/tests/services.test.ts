@@ -82,10 +82,110 @@ describe('CalculatorService', () => {
     }
     
     const secondResult = CalculatorService.calculate({ housing: { electricityKwh: 9999 } });
-    expect(firstResult).not.toBe(secondResult); // Proves firstResult was evicted from cache
+    expect(firstResult).not.toBe(secondResult);
   });
 });
 
+describe('PlanService - Boolean Logic Coverage', () => {
+  it('should hit Housing > 3000 branch (Profile A)', () => {
+    const result = {
+      housing: { electricity: 2000, gas: 1500, waste: 200, total: 3700 },
+      transport: { car: 100, transit: 100, flights: 0, total: 200 },
+      consumption: { diet: 1000, shopping: 100, total: 1100 },
+      grandTotal: 5000
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'h_act1')).toBeDefined();
+  });
+
+  it('should hit Housing <= 3000 but > 1500 and ratio > 0.3 branch (Profile B)', () => {
+    const result = {
+      housing: { electricity: 1000, gas: 800, waste: 200, total: 2000 },
+      transport: { car: 1000, transit: 100, flights: 0, total: 1100 },
+      consumption: { diet: 1800, shopping: 100, total: 1900 },
+      grandTotal: 5000
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'h_act1')).toBeDefined();
+  });
+
+  it('should hit Housing <= 3000 and > 1500 but ratio <= 0.3 branch (Profile C - hits else)', () => {
+    const result = {
+      housing: { electricity: 1000, gas: 800, waste: 200, total: 2000 },
+      transport: { car: 4000, transit: 500, flights: 1500, total: 6000 },
+      consumption: { diet: 1800, shopping: 200, total: 2000 },
+      grandTotal: 10000
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'h_act_led')).toBeDefined();
+  });
+
+  it('should hit Housing <= 1500 branch (Profile D - hits else)', () => {
+    const result = {
+      housing: { electricity: 400, gas: 400, waste: 200, total: 1000 },
+      transport: { car: 2000, transit: 100, flights: 0, total: 2100 },
+      consumption: { diet: 1800, shopping: 100, total: 1900 },
+      grandTotal: 5000
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'h_act_led')).toBeDefined();
+  });
+
+  it('should hit Transport > 3000 branch (Profile A)', () => {
+    const result = {
+      housing: { electricity: 200, gas: 200, waste: 200, total: 600 },
+      transport: { car: 2500, transit: 100, flights: 1000, total: 3600 },
+      consumption: { diet: 1000, shopping: 100, total: 1100 },
+      grandTotal: 5300
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 't_act1')).toBeDefined();
+  });
+
+  it('should hit Transport <= 3000 but > 1500 and ratio > 0.3 branch (Profile B)', () => {
+    const result = {
+      housing: { electricity: 200, gas: 200, waste: 200, total: 600 },
+      transport: { car: 1500, transit: 100, flights: 400, total: 2000 },
+      consumption: { diet: 1000, shopping: 100, total: 1100 },
+      grandTotal: 3700
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 't_act1')).toBeDefined();
+  });
+
+  it('should hit Transport <= 3000 and > 1500 but ratio <= 0.3 branch (Profile C - hits else)', () => {
+    const result = {
+      housing: { electricity: 2000, gas: 1500, waste: 500, total: 4000 },
+      transport: { car: 1500, transit: 100, flights: 400, total: 2000 },
+      consumption: { diet: 2800, shopping: 1200, total: 4000 },
+      grandTotal: 10000
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.habits.find(h => h.id === 't_hab_eco_drive')).toBeDefined();
+  });
+
+  it('should hit Consumption > 2000 branch (Profile A)', () => {
+    const result = {
+      housing: { electricity: 200, gas: 200, waste: 200, total: 600 },
+      transport: { car: 200, transit: 100, flights: 0, total: 300 },
+      consumption: { diet: 2800, shopping: 500, total: 3300 },
+      grandTotal: 4200
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'c_act1')).toBeDefined();
+  });
+
+  it('should hit Consumption <= 2000 but > 1500 and ratio > 0.3 branch (Profile B)', () => {
+    const result = {
+      housing: { electricity: 200, gas: 200, waste: 200, total: 600 },
+      transport: { car: 200, transit: 100, flights: 0, total: 300 },
+      consumption: { diet: 1500, shopping: 200, total: 1700 },
+      grandTotal: 2600
+    };
+    const plan = PlanService.generatePlan(result);
+    expect(plan.actions.find(a => a.id === 'c_act1')).toBeDefined();
+  });
+});
 
 describe('SimulatorService', () => {
   const baseInput = {
@@ -401,5 +501,13 @@ describe('SimulatorService - Cache Eviction', () => {
     const secondResult = SimulatorService.simulate(baseInput, { meatlessDays: 1 });
     // Due to cache eviction, object references should be different
     expect(firstResult).not.toBe(secondResult);
+  });
+
+  it('should return cached result for identical input', () => {
+    const input = { housing: { electricityKwh: 500 } };
+    const toggles = { solarPanels: true };
+    const res1 = SimulatorService.simulate(input, toggles);
+    const res2 = SimulatorService.simulate(input, toggles);
+    expect(res1).toBe(res2); // Should be exact same object reference from cache
   });
 });

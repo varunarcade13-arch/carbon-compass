@@ -318,25 +318,43 @@ describe('Config and Secrets Loader', () => {
     // Clean up
     dotenvSpy.mockRestore();
     consoleErrorSpy.mockRestore();
+  });
+
+  it('should handle config load non-Error exceptions gracefully', () => {
+    const dotenvSpy = vi.spyOn(require('dotenv'), 'config').mockImplementation(() => {
+      throw 'Unknown string error';
+    });
+
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() => initConfig()).toThrow('Unknown string error');
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    // Clean up
+    dotenvSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
     // Re-init config to restore valid state
     initConfig();
-  });
 
   it('should lazy load and cache config when requested', async () => {
     // Test early return when config is already initialized and VITEST is not set
     const originalVitest = process.env.VITEST;
-    delete process.env.VITEST;
+    delete (process.env as any).VITEST;
     try {
       const config1 = initConfig();
       const config2 = initConfig();
       expect(config1).toBe(config2);
     } finally {
-      process.env.VITEST = originalVitest;
+      if (originalVitest !== undefined) {
+        process.env.VITEST = originalVitest;
+      }
     }
 
     // Test lazy loading of getConfig when config is null
     vi.resetModules();
-    const { getConfig: getCleanConfig } = await import('../src/config/secrets');
+    const { getConfig: getCleanConfig } = await import('../src/config/secrets.js');
     const cleanConfig = getCleanConfig();
     expect(cleanConfig.isReady).toBe(true);
   });
@@ -437,10 +455,10 @@ describe('Static File Fallback Handler', () => {
 
   it('GET /some-random-route should handle sendFile error branches', async () => {
     const express = require('express');
-    const sendFileSpy = vi.spyOn(express.response, 'sendFile').mockImplementation(function(this: any, filePath: string, options: any, callback?: any) {
-      const cb = typeof options === 'function' ? options : callback;
-      if (cb) {
-        cb(new Error('Mock SendFile Error'));
+    const sendFileSpy = vi.spyOn(express.response, 'sendFile').mockImplementation(function(this: any, ...args: any[]) {
+      const callback = args.find(arg => typeof arg === 'function');
+      if (callback) {
+        callback(new Error('Mock SendFile Error'));
       }
       return this;
     });
