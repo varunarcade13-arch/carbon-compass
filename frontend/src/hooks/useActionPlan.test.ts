@@ -43,7 +43,7 @@ describe('useActionPlan', () => {
 
   it('should load plan successfully and calculate points on toggle', async () => {
     (ApiClient.getPlans as Mock).mockResolvedValue(mockPlan);
-    const { result, rerender } = renderHook(() => useActionPlan(mockResult));
+    const { result } = renderHook(() => useActionPlan(mockResult));
     
     // Wait for the effect to complete
     await act(async () => {

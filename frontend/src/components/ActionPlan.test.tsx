@@ -107,7 +107,7 @@ describe('ActionPlan Component', () => {
       getMilestoneStatus: vi.fn().mockReturnValue(false)
     });
 
-    const { container } = render(<ActionPlan result={mockResult} />);
+    render(<ActionPlan result={mockResult} />);
     
     expect(screen.getByText('No habits available.')).toBeInTheDocument();
   });

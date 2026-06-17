@@ -84,13 +84,13 @@ describe('AssessmentWizard Component', () => {
   });
 
   it('HousingSection falls back to 0 for missing recycleRate', () => {
-    render(<HousingSection values={{}} onChange={vi.fn()} />);
+    render(<HousingSection values={{} as any} onChange={vi.fn()} />);
     expect(screen.getByRole('slider')).toHaveValue('0');
   });
 
 
   it('TransportSection falls back to 0 for missing flights', () => {
-    render(<TransportSection values={{}} onChange={vi.fn()} />);
+    render(<TransportSection values={{} as any} onChange={vi.fn()} />);
     const shortFlights = screen.getAllByRole('textbox')[0];
     expect(shortFlights).toHaveValue('0');
   });
