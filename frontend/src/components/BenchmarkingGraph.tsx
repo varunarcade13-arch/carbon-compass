@@ -2,7 +2,6 @@ import { Landmark } from 'lucide-react';
 import { memo } from 'react';
 
 interface BenchmarkingGraphProps {
-  tons: string;
   userTons: number;
   usAverageTons: number;
   globalAverageTons: number;
@@ -11,7 +10,6 @@ interface BenchmarkingGraphProps {
 }
 
 export const BenchmarkingGraph = memo(function BenchmarkingGraph({
-  tons,
   userTons,
   usAverageTons,
   globalAverageTons,
@@ -29,7 +27,7 @@ export const BenchmarkingGraph = memo(function BenchmarkingGraph({
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
             <span style={{ fontWeight: 600 }}>Your Footprint</span>
-            <strong>{tons} Tons</strong>
+            <strong>{userTons.toFixed(1)} Tons</strong>
           </div>
           <div className="bar-outer" style={{ height: '8px' }}>
             <div className="bar-inner" style={{ width: `${(userTons / maxBenchmark) * 100}%`, background: 'var(--primary)' }} />

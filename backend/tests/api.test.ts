@@ -378,6 +378,16 @@ describe('Controller Catch Blocks', () => {
     spy.mockRestore();
   });
 
+  it('POST /api/calculate should handle non-Error objects', async () => {
+    const spy = vi.spyOn(CalculatorService, 'calculate').mockImplementation(() => {
+      throw 'Calc String Error';
+    });
+    const response = await request(app).post('/api/calculate').send({});
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe('Unknown error');
+    spy.mockRestore();
+  });
+
   it('POST /api/simulate should return 500 when service fails', async () => {
     const spy = vi.spyOn(SimulatorService, 'simulate').mockImplementation(() => {
       throw new Error('Sim Error Mock');
@@ -388,6 +398,16 @@ describe('Controller Catch Blocks', () => {
     spy.mockRestore();
   });
 
+  it('POST /api/simulate should handle non-Error objects', async () => {
+    const spy = vi.spyOn(SimulatorService, 'simulate').mockImplementation(() => {
+      throw 'Sim String Error';
+    });
+    const response = await request(app).post('/api/simulate').send({ baseInput: {}, toggles: {} });
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe('Unknown error');
+    spy.mockRestore();
+  });
+
   it('POST /api/plans should return 500 when service fails', async () => {
     const spy = vi.spyOn(PlanService, 'generatePlan').mockImplementation(() => {
       throw new Error('Plan Error Mock');
@@ -395,6 +415,16 @@ describe('Controller Catch Blocks', () => {
     const response = await request(app).post('/api/plans').send({ grandTotal: 5000 });
     expect(response.status).toBe(500);
     expect(response.body.error).toBe('Internal Server Error');
+    spy.mockRestore();
+  });
+
+  it('POST /api/plans should handle non-Error objects', async () => {
+    const spy = vi.spyOn(PlanService, 'generatePlan').mockImplementation(() => {
+      throw 'Plan String Error';
+    });
+    const response = await request(app).post('/api/plans').send({ grandTotal: 5000 });
+    expect(response.status).toBe(500);
+    expect(response.body.message).toBe('Unknown error');
     spy.mockRestore();
   });
 });

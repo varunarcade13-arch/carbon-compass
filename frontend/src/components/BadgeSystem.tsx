@@ -266,7 +266,7 @@ export const BadgeGallery = memo(function BadgeGallery({ currentTons }: BadgeGal
 });
 
 
-function getTierWeight(tier: BadgeTier): number {
+export function getTierWeight(tier: BadgeTier): number {
   switch (tier) {
     case 'diamond': return 5;
     case 'platinum': return 4;
@@ -276,3 +276,4 @@ function getTierWeight(tier: BadgeTier): number {
     default: return 0;
   }
 }
+

@@ -361,4 +361,45 @@ describe('PlanService - Zero Emissions Edge Case', () => {
     expect(plan.actions.length).toBeGreaterThan(0);
     expect(plan.actions[0].estimatedSavingsKg).toBe(150);
   });
+
+  it('should hit PlanService cache on duplicate inputs', () => {
+    const resultObj = {
+      housing: { electricity: 100, gas: 100, waste: 100, total: 300 },
+      transport: { car: 100, transit: 100, flights: 100, total: 300 },
+      consumption: { diet: 100, shopping: 100, total: 200 },
+      grandTotal: 800
+    };
+    const plan1 = PlanService.generatePlan(resultObj);
+    const plan2 = PlanService.generatePlan(resultObj);
+    expect(plan1).toBe(plan2); // strict equality means cache hit
+  });
+});
+
+describe('CalculatorService - Null inputs', () => {
+  it('should handle falsy/null inputs for getCacheKey gracefully', () => {
+    // @ts-ignore: testing invalid runtime behavior
+    const result = CalculatorService.calculate(null);
+    expect(result.grandTotal).toBeGreaterThan(0);
+  });
+});
+
+describe('SimulatorService - Cache Eviction', () => {
+  it('should evict simulator cache when limit is exceeded', () => {
+    const baseInput = {
+      housing: { electricityKwh: 1000 },
+      transport: { carKm: 300 },
+      consumption: { diet: 'meat-heavy' as const }
+    };
+    const firstResult = SimulatorService.simulate(baseInput, { meatlessDays: 1 });
+    
+    // Trigger eviction by calling simulate 1005 times with unique toggles
+    for (let i = 0; i < 1005; i++) {
+      // Create unique toggle payloads by dynamically adding fake properties via type assertion
+      SimulatorService.simulate(baseInput, { publicTransitPct: i } as any);
+    }
+    
+    const secondResult = SimulatorService.simulate(baseInput, { meatlessDays: 1 });
+    // Due to cache eviction, object references should be different
+    expect(firstResult).not.toBe(secondResult);
+  });
 });

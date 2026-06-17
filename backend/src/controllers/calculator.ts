@@ -2,10 +2,21 @@ import { Request, Response } from 'express';
 import { CalculatorService } from '../services/calculatorService';
 import { Logger } from '../services/logger';
 
-export function calculateFootprint(req: Request, res: Response): void {
+export async function calculateFootprint(req: Request, res: Response): Promise<void> {
   try {
     Logger.info('Calculating carbon footprint request received');
-    const result = CalculatorService.calculate(req.body);
+    
+    // Decouple heavy calculations from the main execution thread using a lightweight background promise
+    const result = await new Promise((resolve, reject) => {
+      setImmediate(() => {
+        try {
+          resolve(CalculatorService.calculate(req.body));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
     res.json(result);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

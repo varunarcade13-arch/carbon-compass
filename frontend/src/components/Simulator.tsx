@@ -1,59 +1,99 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React from 'react';
 import { AssessmentInput } from '../../../backend/src/services/calculatorService';
-import { SimulationToggles, SimulationResult } from '../../../backend/src/services/simulatorService';
-import { ApiClient } from '../services/api';
+import { SimulationToggles, SimulationProjectionYear } from '../../../backend/src/services/simulatorService';
 import { Sparkles, Sun, Car, Apple, Plane, Train } from 'lucide-react';
-import { getBadgeInfo, BadgeIcon } from './BadgeSystem';
+import { BadgeIcon } from './BadgeSystem';
+import { useSimulator } from '../hooks/useSimulator';
+
+interface ToggleControlProps {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  toggleKey: keyof SimulationToggles;
+  checked: boolean;
+  onChange: (key: keyof SimulationToggles, value: boolean) => void;
+}
+
+const ToggleControl = React.memo(function ToggleControl({ id, icon, title, description, toggleKey, checked, onChange }: ToggleControlProps) {
+  return (
+    <div className="toggle-group">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {icon}
+        <div>
+          <label htmlFor={id} style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>{title}</label>
+          <span id={`${id}-desc`} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</span>
+        </div>
+      </div>
+      <label className="switch">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(toggleKey, e.target.checked)}
+          aria-describedby={`${id}-desc`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onChange(toggleKey, !checked);
+            }
+          }}
+        />
+        <span className="slider-toggle" />
+      </label>
+    </div>
+  );
+});
+
+interface SliderControlProps {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  valueDisplay: React.ReactNode;
+  sliderKey: keyof SimulationToggles;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (key: keyof SimulationToggles, value: number) => void;
+  ariaValueText?: string;
+}
+
+const SliderControl = React.memo(function SliderControl({ id, icon, title, valueDisplay, sliderKey, value, min, max, onChange, ariaValueText }: SliderControlProps) {
+  return (
+    <div className="slider-group">
+      <div className="slider-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {icon}
+          <label htmlFor={id} style={{ fontWeight: 600, fontSize: '15px' }}>{title}</label>
+        </div>
+        <span style={{ fontWeight: 700, color: 'var(--primary)' }} aria-hidden="true">{valueDisplay}</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        className="slider-input"
+        value={value}
+        onChange={(e) => onChange(sliderKey, Number(e.target.value))}
+        aria-valuetext={ariaValueText ?? `${value}`}
+      />
+    </div>
+  );
+});
 
 interface SimulatorProps {
   baseInput: AssessmentInput;
 }
 
 export function Simulator({ baseInput }: SimulatorProps) {
-  const [toggles, setToggles] = useState<SimulationToggles>({
-    switchEv: false,
-    solarPanels: false,
-    meatlessDays: 0,
-    reduceFlightsPct: 0,
-    publicTransitPct: 0,
-  });
-
-  const [simResult, setSimResult] = useState<SimulationResult | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const runSimulation = async (): Promise<void> => {
-      try {
-        const simulationResponse = await ApiClient.simulate(baseInput, toggles);
-        if (active) {
-          setSimResult(simulationResponse);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    runSimulation();
-
-    return () => {
-      active = false;
-    };
-  }, [baseInput, toggles]);
-
-
-  const currentBadge = useMemo(() => {
-    if (!simResult) return null;
-    return getBadgeInfo(simResult.baseline.grandTotal);
-  }, [simResult]);
-
-  const projectedBadge = useMemo(() => {
-    if (!simResult) return null;
-    return getBadgeInfo(simResult.simulated.grandTotal);
-  }, [simResult]);
-
-  const updateToggle = useCallback(<K extends keyof SimulationToggles>(key: K, value: SimulationToggles[K]): void => {
-    setToggles((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const {
+    toggles,
+    simResult,
+    currentBadge,
+    projectedBadge,
+    updateToggle
+  } = useSimulator(baseInput);
 
 
   return (
@@ -64,105 +104,61 @@ export function Simulator({ baseInput }: SimulatorProps) {
           Lifestyle Adjustments
         </h2>
 
-        {/* Solar Panels Toggle */}
-        <div className="toggle-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Sun size={20} style={{ color: 'var(--secondary)' }} />
-            <div>
-              <label htmlFor="toggle-solar" style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>Install Solar Panels</label>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cuts home electricity grid reliance by 80%.</span>
-            </div>
-          </div>
-          <label className="switch">
-            <input
-              id="toggle-solar"
-              type="checkbox"
-              checked={toggles.solarPanels ?? false}
-              onChange={(e) => updateToggle('solarPanels', e.target.checked)}
-            />
-            <span className="slider-toggle" />
-          </label>
-        </div>
+        <ToggleControl
+          id="toggle-solar"
+          icon={<Sun size={20} style={{ color: 'var(--secondary)' }} />}
+          title="Install Solar Panels"
+          description="Cuts home electricity grid reliance by 80%."
+          toggleKey="solarPanels"
+          checked={toggles.solarPanels ?? false}
+          onChange={updateToggle}
+        />
 
-        {/* EV Switch Toggle */}
-        <div className="toggle-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Car size={20} style={{ color: 'var(--accent)' }} />
-            <div>
-              <label htmlFor="toggle-ev" style={{ fontWeight: 600, fontSize: '15px', display: 'block' }}>Switch to Electric Vehicle</label>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transitions commute to clean energy.</span>
-            </div>
-          </div>
-          <label className="switch">
-            <input
-              id="toggle-ev"
-              type="checkbox"
-              checked={toggles.switchEv ?? false}
-              onChange={(e) => updateToggle('switchEv', e.target.checked)}
-            />
-            <span className="slider-toggle" />
-          </label>
-        </div>
+        <ToggleControl
+          id="toggle-ev"
+          icon={<Car size={20} style={{ color: 'var(--accent)' }} />}
+          title="Switch to Electric Vehicle"
+          description="Transitions commute to clean energy."
+          toggleKey="switchEv"
+          checked={toggles.switchEv ?? false}
+          onChange={updateToggle}
+        />
 
-        {/* Meatless Days Slider */}
-        <div className="slider-group">
-          <div className="slider-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Apple size={20} style={{ color: 'var(--primary)' }} />
-              <label htmlFor="slider-meatless" style={{ fontWeight: 600, fontSize: '15px' }}>Meatless Days / Week</label>
-            </div>
-            <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{toggles.meatlessDays} days</span>
-          </div>
-          <input
-            id="slider-meatless"
-            type="range"
-            min="0"
-            max="7"
-            className="slider-input"
-            value={toggles.meatlessDays ?? 0}
-            onChange={(e) => updateToggle('meatlessDays', Number(e.target.value))}
-          />
-        </div>
+        <SliderControl
+          id="slider-meatless"
+          icon={<Apple size={20} style={{ color: 'var(--primary)' }} />}
+          title="Meatless Days / Week"
+          valueDisplay={`${toggles.meatlessDays} days`}
+          sliderKey="meatlessDays"
+          value={toggles.meatlessDays ?? 0}
+          min={0}
+          max={7}
+          onChange={updateToggle}
+        />
 
-        {/* Shift Commute to Public Transit Slider */}
-        <div className="slider-group">
-          <div className="slider-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Train size={20} style={{ color: 'var(--secondary)' }} />
-              <label htmlFor="slider-transit" style={{ fontWeight: 600, fontSize: '15px' }}>Shift Commute to Transit</label>
-            </div>
-            <span style={{ fontWeight: 700, color: 'var(--secondary)' }}>{toggles.publicTransitPct}%</span>
-          </div>
-          <input
-            id="slider-transit"
-            type="range"
-            min="0"
-            max="100"
-            className="slider-input"
-            value={toggles.publicTransitPct ?? 0}
-            onChange={(e) => updateToggle('publicTransitPct', Number(e.target.value))}
-          />
-        </div>
+        <SliderControl
+          id="slider-transit"
+          icon={<Train size={20} style={{ color: 'var(--secondary)' }} />}
+          title="Shift Commute to Transit"
+          valueDisplay={<span style={{ color: 'var(--secondary)' }}>{toggles.publicTransitPct}%</span>}
+          sliderKey="publicTransitPct"
+          value={toggles.publicTransitPct ?? 0}
+          min={0}
+          max={100}
+          onChange={updateToggle}
+        />
 
-        {/* Reduce Flights Slider */}
-        <div className="slider-group">
-          <div className="slider-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Plane size={20} style={{ color: 'var(--accent)' }} />
-              <label htmlFor="slider-flights" style={{ fontWeight: 600, fontSize: '15px' }}>Reduce Flights By</label>
-            </div>
-            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{toggles.reduceFlightsPct}%</span>
-          </div>
-          <input
-            id="slider-flights"
-            type="range"
-            min="0"
-            max="100"
-            className="slider-input"
-            value={toggles.reduceFlightsPct ?? 0}
-            onChange={(e) => updateToggle('reduceFlightsPct', Number(e.target.value))}
-          />
-        </div>
+        <SliderControl
+          id="slider-flights"
+          icon={<Plane size={20} style={{ color: 'var(--accent)' }} />}
+          title="Reduce Flights By"
+          valueDisplay={<span style={{ color: 'var(--accent)' }}>{toggles.reduceFlightsPct}%</span>}
+          sliderKey="reduceFlightsPct"
+          value={toggles.reduceFlightsPct ?? 0}
+          min={0}
+          max={100}
+          onChange={updateToggle}
+        />
       </section>
 
       {/* 2. Simulation Output Projections Card */}
@@ -210,7 +206,7 @@ export function Simulator({ baseInput }: SimulatorProps) {
                 5-Year Cumulative Carbon Savings (Tons)
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {simResult.projections.map((proj) => {
+                {simResult.projections.map((proj: SimulationProjectionYear) => {
                   const maxSavings = simResult.projections[4].savingsCumulative;
                   const barWidth = maxSavings > 0 ? (proj.savingsCumulative / maxSavings) * 100 : 0;
                   return (

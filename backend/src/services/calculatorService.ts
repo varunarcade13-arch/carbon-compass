@@ -94,6 +94,10 @@ export const DEFAULT_INPUTS = {
   shoppingSpent: 300,
 };
 
+/**
+ * CalculatorService handles all core business logic for computing a user's carbon footprint.
+ * It strictly separates calculation logic from state presentation.
+ */
 export class CalculatorService {
   private static readonly cache = new Map<string, CalculationResult>();
   private static readonly MAX_CACHE_SIZE = 1000;
@@ -135,6 +139,13 @@ export class CalculatorService {
     };
   }
 
+  private static getCarEmissionFactor(carType: string): number {
+    if (carType === 'ev') return EMISSION_FACTORS.carEv;
+    if (carType === 'hybrid') return EMISSION_FACTORS.carHybrid;
+    if (carType === 'suv') return EMISSION_FACTORS.carSuv;
+    return EMISSION_FACTORS.carSedan;
+  }
+
   private static calculateTransport(transportInput: TransportInput | null | undefined): TransportBreakdown {
     const carKm = CalculatorService.sanitizeNumber(transportInput?.carKm, DEFAULT_INPUTS.carKm);
     const carType = transportInput?.carType ?? DEFAULT_INPUTS.carType;
@@ -143,11 +154,7 @@ export class CalculatorService {
     const flightsMedium = Math.round(CalculatorService.sanitizeNumber(transportInput?.flightsMedium, DEFAULT_INPUTS.flightsMedium));
     const flightsLong = Math.round(CalculatorService.sanitizeNumber(transportInput?.flightsLong, DEFAULT_INPUTS.flightsLong));
 
-    let carFactor = EMISSION_FACTORS.carSedan;
-    if (carType === 'ev') carFactor = EMISSION_FACTORS.carEv;
-    else if (carType === 'hybrid') carFactor = EMISSION_FACTORS.carHybrid;
-    else if (carType === 'suv') carFactor = EMISSION_FACTORS.carSuv;
-
+    const carFactor = CalculatorService.getCarEmissionFactor(carType);
     const annualCar = carKm * 52 * carFactor;
     const annualTransit = transitKm * 52 * EMISSION_FACTORS.transit;
     const annualFlights = (flightsShort * EMISSION_FACTORS.flightShort) +
@@ -164,15 +171,18 @@ export class CalculatorService {
     };
   }
 
+  private static getDietEmissionFactor(diet: string): number {
+    if (diet === 'vegan') return EMISSION_FACTORS.dietVegan;
+    if (diet === 'vegetarian') return EMISSION_FACTORS.dietVegetarian;
+    if (diet === 'pescatarian') return EMISSION_FACTORS.dietPescatarian;
+    return EMISSION_FACTORS.dietMeatHeavy;
+  }
+
   private static calculateConsumption(consumptionInput: ConsumptionInput | null | undefined): ConsumptionBreakdown {
     const diet = consumptionInput?.diet ?? DEFAULT_INPUTS.diet;
     const shoppingSpent = CalculatorService.sanitizeNumber(consumptionInput?.shoppingSpent, DEFAULT_INPUTS.shoppingSpent);
 
-    let dietEmissions = EMISSION_FACTORS.dietMeatHeavy;
-    if (diet === 'vegan') dietEmissions = EMISSION_FACTORS.dietVegan;
-    else if (diet === 'vegetarian') dietEmissions = EMISSION_FACTORS.dietVegetarian;
-    else if (diet === 'pescatarian') dietEmissions = EMISSION_FACTORS.dietPescatarian;
-
+    const dietEmissions = CalculatorService.getDietEmissionFactor(diet);
     const annualShopping = shoppingSpent * 12 * EMISSION_FACTORS.shopping;
     const total = dietEmissions + annualShopping;
 
@@ -183,27 +193,14 @@ export class CalculatorService {
     };
   }
 
-  public static calculate(input?: AssessmentInput | null): CalculationResult {
-    // 0. Cache lookup to prevent redundant recalculation
-    const cacheKey = input ? JSON.stringify(input) : 'empty';
-    const cachedResult = CalculatorService.cache.get(cacheKey);
-    if (cachedResult) {
-      return cachedResult;
-    }
+  public static getCacheKey(input?: AssessmentInput | null): string {
+    if (!input) return 'empty';
+    return `${input.housing?.electricityKwh}_${input.housing?.gasTherms}_${input.housing?.wasteKg}_${input.housing?.recycleRate}_` +
+           `${input.transport?.carKm}_${input.transport?.carType}_${input.transport?.transitKm}_${input.transport?.flightsShort}_${input.transport?.flightsMedium}_${input.transport?.flightsLong}_` +
+           `${input.consumption?.diet}_${input.consumption?.shoppingSpent}`;
+  }
 
-    const housing = CalculatorService.calculateHousing(input?.housing);
-    const transport = CalculatorService.calculateTransport(input?.transport);
-    const consumption = CalculatorService.calculateConsumption(input?.consumption);
-    const grandTotal = housing.total + transport.total + consumption.total;
-
-    const result: CalculationResult = {
-      housing,
-      transport,
-      consumption,
-      grandTotal,
-    };
-
-    // Size-capped cache eviction (FIFO) to prevent memory leaks/unbounded growth
+  private static setCache(cacheKey: string, result: CalculationResult): void {
     if (CalculatorService.cache.size >= CalculatorService.MAX_CACHE_SIZE) {
       const firstKey = CalculatorService.cache.keys().next().value;
       if (firstKey !== undefined) {
@@ -211,7 +208,26 @@ export class CalculatorService {
       }
     }
     CalculatorService.cache.set(cacheKey, result);
+  }
 
+  /**
+   * Calculates the full carbon footprint breakdown and totals.
+   * @param input The raw assessment input object from the client.
+   * @returns A structured CalculationResult with individual sector breakdowns and grand total.
+   * @remarks Uses LRU caching bounded by MAX_CACHE_SIZE to prevent redundant heavy computations.
+   */
+  public static calculate(input?: AssessmentInput | null): CalculationResult {
+    const cacheKey = CalculatorService.getCacheKey(input);
+    const cachedResult = CalculatorService.cache.get(cacheKey);
+    if (cachedResult) return cachedResult;
+
+    const housing = CalculatorService.calculateHousing(input?.housing);
+    const transport = CalculatorService.calculateTransport(input?.transport);
+    const consumption = CalculatorService.calculateConsumption(input?.consumption);
+    const grandTotal = housing.total + transport.total + consumption.total;
+
+    const result: CalculationResult = { housing, transport, consumption, grandTotal };
+    CalculatorService.setCache(cacheKey, result);
     return result;
   }
 }

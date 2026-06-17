@@ -10,6 +10,9 @@ build/
 frontend/dist/
 backend/dist/
 backend/public/
+coverage/
+*/coverage/
+
 
 # Logs and databases
 npm-debug.log*

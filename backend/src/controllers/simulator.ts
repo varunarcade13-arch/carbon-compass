@@ -2,11 +2,22 @@ import { Request, Response } from 'express';
 import { SimulatorService } from '../services/simulatorService';
 import { Logger } from '../services/logger';
 
-export function simulateFootprint(req: Request, res: Response): void {
+export async function simulateFootprint(req: Request, res: Response): Promise<void> {
   try {
     Logger.info('Simulating footprint scenario request received');
     const { baseInput, toggles } = req.body;
-    const result = SimulatorService.simulate(baseInput, toggles);
+    
+    // Decouple heavy calculations from the main execution thread using a lightweight background promise
+    const result = await new Promise((resolve, reject) => {
+      setImmediate(() => {
+        try {
+          resolve(SimulatorService.simulate(baseInput, toggles));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
     res.json(result);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

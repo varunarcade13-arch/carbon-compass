@@ -1,62 +1,65 @@
-import { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { CalculationResult } from '../../../backend/src/services/calculatorService';
-import { ActionPlanResult, HabitItem, Milestone } from '../../../backend/src/services/planService';
-import { ApiClient } from '../services/api';
+import { HabitItem, ActionItem, Milestone } from '../../../backend/src/services/planService';
 import { Award, Trophy, Sparkles, Check } from 'lucide-react';
-import { getBadgeInfo, BadgeIcon } from './BadgeSystem';
+import { BadgeIcon } from './BadgeSystem';
+import { useActionPlan } from '../hooks/useActionPlan';
+
+interface MemoizedHabitRowProps {
+  habit: HabitItem;
+  isChecked: boolean;
+  onToggle: (habit: HabitItem) => void;
+}
+
+const MemoizedHabitRow = React.memo(function MemoizedHabitRow({ habit, isChecked, onToggle }: MemoizedHabitRowProps) {
+  return (
+    <div
+      className={`habit-checkbox-group ${isChecked ? 'completed' : ''}`}
+      onClick={() => onToggle(habit)}
+      role="checkbox"
+      aria-checked={isChecked}
+      aria-labelledby={`habit-${habit.id}-title`}
+      aria-describedby={`habit-${habit.id}-desc`}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          onToggle(habit);
+        }
+      }}
+    >
+      <div className={`habit-checkbox ${isChecked ? 'checked' : ''}`}>
+        {isChecked && <Check size={14} style={{ color: 'var(--bg-deep)' }} />}
+      </div>
+      <div style={{ flexGrow: 1 }}>
+        <span id={`habit-${habit.id}-title`} style={{ fontWeight: 600, fontSize: '15px', color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+          {habit.title}
+        </span>
+        <p id={`habit-${habit.id}-desc`} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {habit.description} ({habit.frequency})
+        </p>
+      </div>
+      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)' }}>
+        +{habit.points}pts
+      </span>
+    </div>
+  );
+});
 
 interface ActionPlanProps {
   result: CalculationResult;
 }
 
 export function ActionPlan({ result }: ActionPlanProps) {
-  const [plan, setPlan] = useState<ActionPlanResult | null>(null);
-  const [completedHabits, setCompletedHabits] = useState<Record<string, boolean>>({});
-  const [points, setPoints] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  // Get active badge based on emissions
-  const badgeInfo = useMemo(() => getBadgeInfo(result.grandTotal), [result.grandTotal]);
-
-  // Fetch plan from backend on result mount
-  useEffect(() => {
-    let active = true;
-    const fetchPlan = async () => {
-      setLoading(true);
-      try {
-        const res = await ApiClient.getPlans(result);
-        if (active) {
-          setPlan(res);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-    fetchPlan();
-    return () => {
-      active = false;
-    };
-  }, [result]);
-
-  const toggleHabit = (habit: HabitItem): void => {
-    const isCompleted = !completedHabits[habit.id];
-    setCompletedHabits((prev) => ({ ...prev, [habit.id]: isCompleted }));
-    
-    // Adjust points
-    setPoints((prev) => {
-      const adjustment = isCompleted ? habit.points : -habit.points;
-      return Math.max(0, prev + adjustment);
-    });
-  };
-
-  const getMilestoneStatus = (milestone: Milestone): boolean => {
-    return points >= milestone.targetPoints;
-  };
-
+  const {
+    plan,
+    completedHabits,
+    loading,
+    points,
+    badgeInfo,
+    toggleHabit,
+    getMilestoneStatus
+  } = useActionPlan(result);
 
   return (
     <div className="dashboard-grid">
@@ -86,40 +89,14 @@ export function ActionPlan({ result }: ActionPlanProps) {
             <p style={{ color: 'var(--text-secondary)' }}>Generating habit list...</p>
           ) : plan && plan.habits.length > 0 ? (
             <div className="plan-list">
-              {plan.habits.map((habit) => {
-                const isChecked = !!completedHabits[habit.id];
-                return (
-                  <div
-                    key={habit.id}
-                    className={`habit-checkbox-group ${isChecked ? 'completed' : ''}`}
-                    onClick={() => toggleHabit(habit)}
-                    role="checkbox"
-                    aria-checked={isChecked}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === ' ' || e.key === 'Enter') {
-                        e.preventDefault();
-                        toggleHabit(habit);
-                      }
-                    }}
-                  >
-                    <div className={`habit-checkbox ${isChecked ? 'checked' : ''}`}>
-                      {isChecked && <Check size={14} style={{ color: 'var(--bg-deep)' }} />}
-                    </div>
-                    <div style={{ flexGrow: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: '15px', color: isChecked ? 'var(--text-muted)' : 'var(--text-primary)' }}>
-                        {habit.title}
-                      </span>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {habit.description} ({habit.frequency})
-                      </p>
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)' }}>
-                      +{habit.points}pts
-                    </span>
-                  </div>
-                );
-              })}
+              {plan.habits.map((habit: HabitItem) => (
+                <MemoizedHabitRow
+                  key={habit.id}
+                  habit={habit}
+                  isChecked={!!completedHabits[habit.id]}
+                  onToggle={toggleHabit}
+                />
+              ))}
             </div>
           ) : (
             <p style={{ color: 'var(--text-secondary)' }}>No habits available.</p>
@@ -136,7 +113,7 @@ export function ActionPlan({ result }: ActionPlanProps) {
             <p style={{ color: 'var(--text-secondary)' }}>Generating personalized roadmaps...</p>
           ) : plan && plan.actions.length > 0 ? (
             <div className="plan-list">
-              {plan.actions.map((roadmapAction) => (
+              {plan.actions.map((roadmapAction: ActionItem) => (
                 <article key={roadmapAction.id} className="action-card">
                   <div style={{ flexGrow: 1, paddingRight: '16px' }}>
                     <h3 style={{ fontFamily: 'var(--font-header)', fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
@@ -173,7 +150,7 @@ export function ActionPlan({ result }: ActionPlanProps) {
           <p style={{ color: 'var(--text-secondary)' }}>Loading milestone configurations...</p>
         ) : plan ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {plan.milestones.map((milestone) => {
+            {plan.milestones.map((milestone: Milestone) => {
               const isUnlocked = getMilestoneStatus(milestone);
               return (
                 <div

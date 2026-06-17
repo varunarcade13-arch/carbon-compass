@@ -1,10 +1,93 @@
-import { useMemo } from 'react';
+import React from 'react';
 import { CalculationResult } from '../../../backend/src/services/calculatorService';
 import { Info, PieChart } from 'lucide-react';
-import { getBadgeInfo, BadgeIcon, BadgeGallery } from './BadgeSystem';
+import { BadgeIcon, BadgeGallery } from './BadgeSystem';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { BenchmarkingGraph } from './BenchmarkingGraph';
 
+interface MemoizedDonutChartProps {
+  housingPiePercentage: number;
+  transportPiePercentage: number;
+  consumptionPiePercentage: number;
+}
+
+const MemoizedDonutChart = React.memo(function MemoizedDonutChart({
+  housingPiePercentage,
+  transportPiePercentage,
+  consumptionPiePercentage,
+}: MemoizedDonutChartProps) {
+  return (
+    <section className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} aria-labelledby="pie-title">
+      <h2 id="pie-title" style={{ fontFamily: 'var(--font-header)', fontSize: '20px', fontWeight: 600, marginBottom: '20px', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <PieChart size={20} style={{ color: 'var(--primary)' }} /> Proportional Slice
+      </h2>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {/* SVG Donut */}
+        <div style={{ position: 'relative', width: '160px', height: '160px' }}>
+          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} role="img" aria-label="Donut chart breaking down emissions by Housing, Transport, and Consumption">
+            {/* Sector 1: Housing (Teal) */}
+            <circle
+              cx="18"
+              cy="18"
+              r="15.91549430918954"
+              fill="none"
+              stroke="var(--secondary)"
+              strokeWidth="3.8"
+              strokeDasharray={`${housingPiePercentage} ${100 - housingPiePercentage}`}
+              strokeDashoffset="0"
+            />
+            {/* Sector 2: Transport (Violet) */}
+            <circle
+              cx="18"
+              cy="18"
+              r="15.91549430918954"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="3.8"
+              strokeDasharray={`${transportPiePercentage} ${100 - transportPiePercentage}`}
+              strokeDashoffset={`-${housingPiePercentage}`}
+            />
+            {/* Sector 3: Consumption (Mint Green) */}
+            <circle
+              cx="18"
+              cy="18"
+              r="15.91549430918954"
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth="3.8"
+              strokeDasharray={`${consumptionPiePercentage} ${100 - consumptionPiePercentage}`}
+              strokeDashoffset={`-${housingPiePercentage + transportPiePercentage}`}
+            />
+          </svg>
+          {/* Inner Donut Display */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-header)', pointerEvents: 'none' }}>
+            <span style={{ fontSize: '24px', fontWeight: 700 }}>100%</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Breakdown</span>
+          </div>
+        </div>
+
+        {/* Donut Legend */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '120px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--secondary)' }} />
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Housing: {housingPiePercentage}%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--accent)' }} />
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Transport: {transportPiePercentage}%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--primary)' }} />
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Consumption: {consumptionPiePercentage}%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+});
+
+import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 
 interface DashboardProps {
   result: CalculationResult;
@@ -12,65 +95,24 @@ interface DashboardProps {
 }
 
 export function Dashboard({ result, onRecalculate }: DashboardProps) {
-  const tons = useMemo(() => (result.grandTotal / 1000).toFixed(1), [result.grandTotal]);
-  const totalVal = result.grandTotal;
-
-  // Determine Badge Information
-  const badgeInfo = useMemo(() => getBadgeInfo(totalVal), [totalVal]);
-
-  // Determine Impact Rating
-  const ratingDetails = useMemo(() => {
-    let rating: 'low' | 'med' | 'high' = 'med';
-    let ratingLabel = 'Average Impact';
-    let ratingClass = 'med';
-    if (totalVal < 4000) {
-      rating = 'low';
-      ratingLabel = 'Low Impact (Eco Friendly)';
-      ratingClass = 'low';
-    } else if (totalVal > 12000) {
-      rating = 'high';
-      ratingLabel = 'High Impact (Action Needed)';
-      ratingClass = 'high';
-    }
-    return { rating, ratingLabel, ratingClass };
-  }, [totalVal]);
-
-  const { rating, ratingLabel, ratingClass } = ratingDetails;
-
-  // Percentages for breakdown bars (relative to max category)
-  const breakdownPercentages = useMemo(() => {
-    const maxCategory = Math.max(result.housing.total, result.transport.total, result.consumption.total, 1);
-    return {
-      percentageHousing: (result.housing.total / maxCategory) * 100,
-      percentageTransport: (result.transport.total / maxCategory) * 100,
-      percentageConsumption: (result.consumption.total / maxCategory) * 100,
-    };
-  }, [result.housing.total, result.transport.total, result.consumption.total]);
-
-  const { percentageHousing, percentageTransport, percentageConsumption } = breakdownPercentages;
-
-  // Donut Piechart calculations (absolute percentages out of total)
-  const donutPercentages = useMemo(() => {
-    const totalEmissions = Math.max(result.grandTotal, 1);
-    const housingPiePercentage = Math.round((result.housing.total / totalEmissions) * 100);
-    const transportPiePercentage = Math.round((result.transport.total / totalEmissions) * 100);
-    const consumptionPiePercentage = 100 - housingPiePercentage - transportPiePercentage; // ensure total is exactly 100%
-    return { housingPiePercentage, transportPiePercentage, consumptionPiePercentage };
-  }, [result.grandTotal, result.housing.total, result.transport.total]);
-
-  const { housingPiePercentage, transportPiePercentage, consumptionPiePercentage } = donutPercentages;
-
-  // Benchmarking scores (in Tons)
-  const benchmarkDetails = useMemo(() => {
-    const userTons = Number(tons);
-    const usAverageTons = 16.0;
-    const globalAverageTons = 4.5;
-    const targetGoalTons = 2.0;
-    const maxBenchmark = Math.max(userTons, usAverageTons, globalAverageTons, targetGoalTons, 1);
-    return { userTons, usAverageTons, globalAverageTons, targetGoalTons, maxBenchmark };
-  }, [tons]);
-
-  const { userTons, usAverageTons, globalAverageTons, targetGoalTons, maxBenchmark } = benchmarkDetails;
+  const {
+    tons,
+    badgeInfo,
+    rating,
+    ratingLabel,
+    ratingClass,
+    percentageHousing,
+    percentageTransport,
+    percentageConsumption,
+    housingPiePercentage,
+    transportPiePercentage,
+    consumptionPiePercentage,
+    userTons,
+    usAverageTons,
+    globalAverageTons,
+    targetGoalTons,
+    maxBenchmark
+  } = useDashboardMetrics(result);
 
 
   return (
@@ -117,77 +159,11 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
         </section>
 
         {/* Card 2: Interactive SVG Donut Pie Chart */}
-        <section className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} aria-labelledby="pie-title">
-
-          <h2 id="pie-title" style={{ fontFamily: 'var(--font-header)', fontSize: '20px', fontWeight: 600, marginBottom: '20px', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PieChart size={20} style={{ color: 'var(--primary)' }} /> Proportional Slice
-          </h2>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {/* SVG Donut */}
-            <div style={{ position: 'relative', width: '160px', height: '160px' }}>
-              <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                {/* Sector 1: Housing (Teal) */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15.91549430918954"
-                  fill="none"
-                  stroke="var(--secondary)"
-                  strokeWidth="3.8"
-                  strokeDasharray={`${housingPiePercentage} ${100 - housingPiePercentage}`}
-                  strokeDashoffset="0"
-                />
-                {/* Sector 2: Transport (Violet) */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15.91549430918954"
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="3.8"
-                  strokeDasharray={`${transportPiePercentage} ${100 - transportPiePercentage}`}
-                  strokeDashoffset={`-${housingPiePercentage}`}
-                />
-                {/* Sector 3: Consumption (Mint Green) */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15.91549430918954"
-                  fill="none"
-                  stroke="var(--primary)"
-                  strokeWidth="3.8"
-                  strokeDasharray={`${consumptionPiePercentage} ${100 - consumptionPiePercentage}`}
-                  strokeDashoffset={`-${housingPiePercentage + transportPiePercentage}`}
-                />
-
-              </svg>
-              {/* Inner Donut Display */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-header)', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '24px', fontWeight: 700 }}>100%</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Breakdown</span>
-              </div>
-            </div>
-
-            {/* Donut Legend */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '120px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--secondary)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Housing: {housingPiePercentage}%</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--accent)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Transport: {transportPiePercentage}%</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--primary)' }} />
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Consumption: {consumptionPiePercentage}%</span>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
+        <MemoizedDonutChart 
+          housingPiePercentage={housingPiePercentage}
+          transportPiePercentage={transportPiePercentage}
+          consumptionPiePercentage={consumptionPiePercentage}
+        />
       </div>
 
       {/* Badge Achievement Gallery Grid */}
@@ -201,7 +177,6 @@ export function Dashboard({ result, onRecalculate }: DashboardProps) {
         />
 
         <BenchmarkingGraph
-          tons={tons}
           userTons={userTons}
           usAverageTons={usAverageTons}
           globalAverageTons={globalAverageTons}

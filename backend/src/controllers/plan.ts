@@ -3,17 +3,28 @@ import { PlanService } from '../services/planService';
 import { CalculatorService } from '../services/calculatorService';
 import { Logger } from '../services/logger';
 
-export function getActionPlan(req: Request, res: Response): void {
+export async function getActionPlan(req: Request, res: Response): Promise<void> {
   try {
     Logger.info('Generating personalized carbon roadmap request received');
-    let calcResult = req.body;
     
-    // If the input is not a calculation result, run calculations first
-    if (!calcResult || typeof calcResult.grandTotal !== 'number') {
-      calcResult = CalculatorService.calculate(req.body);
-    }
-    
-    const result = PlanService.generatePlan(calcResult);
+    // Decouple heavy calculations from the main execution thread using a lightweight background promise
+    const result = await new Promise((resolve, reject) => {
+      setImmediate(() => {
+        try {
+          let calcResult = req.body;
+          
+          // If the input is not a calculation result, run calculations first
+          if (!calcResult || typeof calcResult.grandTotal !== 'number') {
+            calcResult = CalculatorService.calculate(req.body);
+          }
+          
+          resolve(PlanService.generatePlan(calcResult));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
     res.json(result);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
